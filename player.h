@@ -5,26 +5,25 @@
 
 // --- Prototypes des Fonctions Joueur ---
 
-// Charge toutes les animations du joueur DANS gameState
+// Charge toutes les animations du joueur, les redimensionne, traite transparence et initialise la structure DANS gameState
 void load_player_animations(GameState *gameState);
 
-// Initialise l'état du joueur au début d'un niveau ou au démarrage
+// Initialise l'état du joueur au début d'un niveau ou après une mort
 void init_player_state(GameState *gameState);
 
-// Définit l'état du joueur et met à jour les sprites/animations correspondants
-void set_player_state(GameState *gameState, PlayerState new_state);
-
-// Met à jour la logique du joueur (déplacement, état, animation)
+// Met à jour la position, l'état et l'animation du joueur DANS gameState
 void mettre_a_jour_joueur(GameState *gameState);
 
-// Dessine le joueur sur le buffer de destination (gameState->buffer)
+// Dessine le joueur (depuis gameState) sur le buffer de destination (gameState->buffer)
 void dessiner_joueur(GameState *gameState);
 
-// Inflige des dégâts au joueur et gère les conséquences (état HIT, GAME OVER)
-void damage_player(GameState *gameState, int damage_amount);
+// Nettoie les ressources spécifiques au joueur (tous les sprites dans gameState)
+void nettoyer_ressources_joueur(GameState *gameState);
 
-// Nettoie les ressources spécifiques au joueur (sprites modèles dans gameState)
-void nettoyer_ressources_player(GameState *gameState);
+// Fonction pour changer l'état du joueur (et son animation)
+void set_player_state(GameState *gameState, PlayerState new_state);
 
+// Fonction pour infliger des dégâts au joueur
+void damage_player(GameState *gameState, int amount);
 
 #endif // PLAYER_H

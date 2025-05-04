@@ -1,0 +1,23 @@
+# ninja log v6
+8	220	7679804459851568	CMakeFiles/untitled4.dir/player.c.obj	b88daef9a7d09620
+3	203	7679822729938159	CMakeFiles/untitled4.dir/main.c.obj	6f04076b8cffc05e
+3	176	7679783552692079	CMakeFiles/untitled4.dir/graphics.c.obj	32ce3b163a1902fa
+21	273	7679775724627839	CMakeFiles/untitled4.dir/hud.c.obj	a727d7a93824a03f
+30	247	7679775724717637	CMakeFiles/untitled4.dir/savegame.c.obj	2d8679d21134c198
+17	275	7679775724590899	CMakeFiles/untitled4.dir/projectile.c.obj	aea9cb11c007e4dc
+4	183	7679793647364190	CMakeFiles/untitled4.dir/effect.c.obj	1d0a37cced6c2214
+3	174	7679791329356546	CMakeFiles/untitled4.dir/enemy.c.obj	e3d149400224bfad
+204	431	7679822731939155	untitled4.exe	420c48f5076386a5
+7	273	7679842621031404	CMakeFiles/untitled4.dir/graphics.c.obj	32ce3b163a1902fa
+3	279	7679842620985206	CMakeFiles/untitled4.dir/main.c.obj	6f04076b8cffc05e
+26	299	7679842621213303	CMakeFiles/untitled4.dir/hud.c.obj	a727d7a93824a03f
+11	302	7679842621074068	CMakeFiles/untitled4.dir/player.c.obj	b88daef9a7d09620
+37	303	7679842621333351	CMakeFiles/untitled4.dir/savegame.c.obj	2d8679d21134c198
+20	305	7679842621166184	CMakeFiles/untitled4.dir/projectile.c.obj	aea9cb11c007e4dc
+31	306	7679842621273321	CMakeFiles/untitled4.dir/effect.c.obj	1d0a37cced6c2214
+16	307	7679842621122338	CMakeFiles/untitled4.dir/enemy.c.obj	e3d149400224bfad
+307	502	7679842624031652	untitled4.exe	420c48f5076386a5
+3	170	7679842947999380	CMakeFiles/untitled4.dir/projectile.c.obj	aea9cb11c007e4dc
+171	354	7679842949671127	untitled4.exe	420c48f5076386a5
+2	190	7679860292925262	CMakeFiles/untitled4.dir/enemy.c.obj	e3d149400224bfad
+190	376	7679860294791577	untitled4.exe	420c48f5076386a5
