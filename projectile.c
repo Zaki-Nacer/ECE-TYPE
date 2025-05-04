@@ -1,3 +1,12 @@
+#include "projectile.h"
+#include "defs.h"
+#include "graphics.h" // Pour charger_bitmap_safe et make_white_transparent
+#include <stdio.h>
+#include <math.h>
+#include <stdlib.h>
+
+// --- Implémentation des Fonctions ---
+
 // Charge et prépare le sprite du projectile joueur DANS gameState
 void charger_et_redimensionner_sprite_projectile_joueur(GameState *gameState) {
     if (!gameState) { printf("ERREUR: gameState NULL dans charger_sprite_projectile\n"); fflush(stdout); return; }
@@ -27,7 +36,17 @@ void charger_et_redimensionner_sprite_projectile_joueur(GameState *gameState) {
     // Stocker le sprite traité dans gameState
     gameState->sprite_projectile_joueur = resized_bmp;
     printf("Sprite projectile joueur chargé, redimensionné (%dx%d) et traité.\n", new_w, new_h); fflush(stdout);
-    
+
+    // Charger aussi les sprites d'impact (s'ils ne sont pas déjà chargés par effects.c)
+    // Si effects.c les charge déjà, cette partie peut être redondante.
+    // Assurez-vous que gameState->sprites_impact est bien initialisé.
+    // Exemple: Si effects.c ne charge pas, décommentez et adaptez:
+    /*
+    if (!gameState->sprites_impact[0]) { // Charger seulement si pas déjà fait
+         printf("Chargement sprites impact pour projectiles...\n"); fflush(stdout);
+         charger_sprites_effects(gameState); // Appelle la fonction de effect.c
+    }
+    */
 }
 
 // Initialise le tableau des projectiles joueur DANS gameState
@@ -82,10 +101,12 @@ void spawn_projectile_joueur(GameState *gameState, int start_x, int start_y) {
             p->impact_frame = 0;
             p->impact_timer = 0;
 
+            // Debug: printf("DEBUG: Projectile joueur spawné en slot %d à (%d, %d)\n", i, p->x, p->y); fflush(stdout);
             return; // Sortir dès qu'un slot est trouvé
         }
     }
     // Si on arrive ici, le tableau est plein
+    // printf("Attention: Impossible de spawner projectile joueur, tableau plein !\n"); fflush(stdout);
 }
 
 // Met à jour les projectiles joueur DANS gameState
@@ -182,3 +203,30 @@ void dessiner_projectiles_joueur(GameState *gameState) {
     } // fin for
 }
 
+
+// Nettoie les ressources spécifiques aux projectiles joueur (modèles dans gameState)
+void nettoyer_ressources_projectiles_joueur(GameState *gameState) {
+    if (!gameState) return;
+    printf("Nettoyage ressources projectiles joueur...\n"); fflush(stdout);
+
+    // Détruire le sprite de vol
+    if (gameState->sprite_projectile_joueur) {
+        destroy_bitmap(gameState->sprite_projectile_joueur);
+        gameState->sprite_projectile_joueur = NULL;
+        printf("Sprite modèle projectile joueur détruit.\n"); fflush(stdout);
+    }
+
+    // Les sprites d'impact sont généralement partagés avec Effects
+    // et devraient être nettoyés par nettoyer_ressources_effects().
+    // Ne pas les détruire ici pour éviter une double libération.
+    /*
+    printf("Nettoyage sprites impact (partagés)...\n"); fflush(stdout);
+    for (int i = 0; i < IMPACT_NBFRAMES; i++) {
+        if (gameState->sprites_impact[i]) {
+            // Ne pas détruire ici si géré ailleurs
+            // destroy_bitmap(gameState->sprites_impact[i]);
+            // gameState->sprites_impact[i] = NULL;
+        }
+    }
+    */
+}

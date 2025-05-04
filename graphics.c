@@ -3,6 +3,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// --- Variables Globales (Définies ici, déclarées extern dans defs.h) ---
+// Note: Normalement, elles devraient être dans GameState, mais pour simplifier
+// le debug de l'erreur de lien, laissons-les ici TEMPORAIREMENT.
+// Une fois que ça compile, on les remettra dans GameState.
+// BITMAP *buffer = NULL;
+// BITMAP *decor = NULL;
+// int scroll_x = 0;
+// int scroll_y = 0;
+// int couleur_magenta;
+// int couleur_blanche;
+// float current_scroll_speed = INITIAL_SCROLL_SPEED; // Commenté
 
 // --- Implémentation des Fonctions ---
 
@@ -135,4 +146,11 @@ void dessiner_decor(GameState *gameState) {
         int largeur_partie2 = screen_w - largeur_partie1;
         if (largeur_partie2 > 0) { blit(decor_src, dest, 0, offset_y, largeur_partie1, 0, largeur_partie2, screen_h); }
     }
+}
+
+void nettoyer_ressources_graphiques(GameState *gameState) {
+     if (!gameState) return;
+     printf("Nettoyage ressources graphiques...\n"); fflush(stdout);
+    if (gameState->decor) { destroy_bitmap(gameState->decor); gameState->decor = NULL; printf("Decor détruit.\n"); fflush(stdout); }
+    if (gameState->buffer) { destroy_bitmap(gameState->buffer); gameState->buffer = NULL; printf("Buffer détruit.\n"); fflush(stdout); }
 }

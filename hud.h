@@ -16,4 +16,8 @@ void dessiner_barre_progression(GameState *gameState, BITMAP *dest, int x, int y
 
 // Dessine l'ensemble du HUD (depuis gameState) sur le buffer (gameState->buffer)
 void dessiner_hud(GameState *gameState);
+
+// Nettoie les ressources HUD (depuis gameState)
+void nettoyer_ressources_hud(GameState *gameState);
+
 #endif // HUD_H

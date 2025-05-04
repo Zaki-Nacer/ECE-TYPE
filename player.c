@@ -1,359 +1,264 @@
 #include "player.h"
-#include "graphics.h" // Pour charger_bitmap_safe, make_white_transparent
-#include <stdio.h>
 #include "defs.h"
+#include "graphics.h" // Pour charger_bitmap_safe ET make_white_transparent
+#include <stdio.h>
 #include <math.h>
-#include <allegro.h>
 
-
-
-// --- Constantes Vaisseau Joueur ---
-#define PLAYER_NBFRAMES_IDLE_MOVE 4
-#define PLAYER_NBFRAMES_HIT 2
-#define PLAYER_NBFRAMES_DEATH 6
-#define PLAYER_ANIM_SPEED_MOVE 5
-#define PLAYER_ANIM_SPEED_HIT 8
-#define PLAYER_ANIM_SPEED_DEATH 10
-#define PLAYER_HIT_DURATION (TARGET_FPS / 3) // Durée état HIT (env 1/3 sec)
-#define PLAYER_SCALE_FACTOR 0.375f
-#define PLAYER_SPEED 4
-#define PLAYER_INITIAL_HP 5 // Points de vie initiaux
-#define PLAYER_INVINCIBILITY_DURATION (TARGET_FPS * 2) // 2 secondes d'invincibilité après HIT
+// --- PAS DE VARIABLE GLOBALE 'joueur' ICI ---
 
 // --- Implémentation des Fonctions ---
 
-// Fonction interne pour charger, redimensionner et traiter une séquence d'animation joueur
+// Fonction helper pour charger/redim/traiter une animation
 void load_process_player_anim(GameState *gameState, BITMAP *dest_array[], int nb_frames, const char *base_filename_pattern) {
-    if (!gameState || !dest_array) { printf("ERREUR: gameState ou dest_array NULL dans load_process_player_anim\n"); fflush(stdout); return; }
-
+    if (!gameState) return;
     char filename[100];
     BITMAP *original_bmp = NULL;
-    BITMAP *resized_bmp = NULL;
+    BITMAP *processed_bmp = NULL;
 
-    printf("Chargement animation joueur: %s (%d frames)...\n", base_filename_pattern, nb_frames); fflush(stdout);
+    printf("Chargement animation joueur: %s...\n", base_filename_pattern); fflush(stdout);
 
-    for (int i = 0; i < nb_frames; i++) { // Boucle de 0 à nb_frames - 1
-        sprintf(filename, base_filename_pattern, i + 1);
-        printf(" -> Chargement fichier: %s\n", filename); fflush(stdout); // Log du fichier tenté
-        original_bmp = charger_bitmap_safe(filename); // charger_bitmap_safe gère l'erreur si NULL
+    for (int i = 1; i < nb_frames+1; i++) {
+        sprintf(filename, base_filename_pattern, i);
+        original_bmp = charger_bitmap_safe(filename);
 
-        // Redimensionnement
         int new_w = (int)roundf(original_bmp->w * PLAYER_SCALE_FACTOR);
         int new_h = (int)roundf(original_bmp->h * PLAYER_SCALE_FACTOR);
         if (new_w <= 0) new_w = 1; if (new_h <= 0) new_h = 1;
 
-        resized_bmp = create_bitmap(new_w, new_h);
-        if (!resized_bmp) {
-            allegro_message("Erreur creation bitmap redimensionné pour joueur (%s)!", filename);
-            exit(EXIT_FAILURE);
-        }
+        processed_bmp = create_bitmap(new_w, new_h);
+        if (!processed_bmp) { /* ... gestion erreur ... */ exit(EXIT_FAILURE); }
 
-        stretch_blit(original_bmp, resized_bmp, 0, 0, original_bmp->w, original_bmp->h, 0, 0, new_w, new_h);
+        stretch_blit(original_bmp, processed_bmp, 0, 0, original_bmp->w, original_bmp->h, 0, 0, new_w, new_h);
         destroy_bitmap(original_bmp);
 
-        make_white_transparent(gameState, resized_bmp);
+        make_white_transparent(gameState, processed_bmp); // Traiter transparence
 
-        dest_array[i] = resized_bmp;
-        printf(" -> Frame %d (%s) chargée/redim/traitée (%dx%d) -> index %d\n", i + 1, filename, new_w, new_h, i); fflush(stdout);
-
-        // Vérification immédiate si le sprite chargé est NULL
-        if (dest_array[i] == NULL) {
-             printf("ERREUR CRITIQUE: dest_array[%d] est NULL juste après assignation pour %s!\n", i, base_filename_pattern); fflush(stdout);
-             exit(EXIT_FAILURE);
-        }
+        dest_array[i] = processed_bmp;
+        printf(" -> Frame %d (%s) chargée/redim/traitée (%dx%d)\n", i, filename, new_w, new_h); fflush(stdout);
     }
-    printf(" -> Animation joueur %s chargée.\n", base_filename_pattern); fflush(stdout);
 }
 
-
-
-// Charge toutes les animations du joueur DANS gameState
+// Charge toutes les animations du joueur
 void load_player_animations(GameState *gameState) {
     if (!gameState) { printf("ERREUR: gameState NULL dans load_player_animations\n"); fflush(stdout); return; }
-    printf("--- Chargement Sprites Joueur ---\n"); fflush(stdout);
 
-    // Charger l'animation combinée Idle/Move
-    const char *idle_move_pattern = "skeletonally-MovingNIdle_ (%d).bmp"; // Adaptez le nom du fichier si nécessaire
-    load_process_player_anim(gameState, gameState->sprites_player_idle_move, PLAYER_NBFRAMES_IDLE_MOVE, idle_move_pattern);
-    // *** NOUVELLE VÉRIFICATION ***
-    if (PLAYER_NBFRAMES_IDLE_MOVE > 0 && gameState->sprites_player_idle_move[0] == NULL) {
-        printf("ERREUR FATALE: La première frame de l'animation '%s' n'a pas pu être chargée correctement!\n", idle_move_pattern); fflush(stdout);
-        exit(EXIT_FAILURE); // Arrêter car le joueur ne peut pas être initialisé
+    // Charger Idle/Move (ex: skeleton-MovingNIdle_%d.bmp)
+    load_process_player_anim(gameState, gameState->sprites_player_idle_move, PLAYER_NBFRAMES_IDLE_MOVE, "skeletonally-MovingNIdle_ (%d).bmp");
+
+    // Charger Hit (ex: player_hit_%d.bmp) - !!! ADAPTER NOM FICHIER !!!
+    load_process_player_anim(gameState, gameState->sprites_player_hit, PLAYER_NBFRAMES_HIT, "skeletonally0-GetHit__(%d).bmp");
+
+    // Charger Death (ex: player_death_%d.bmp) - !!! ADAPTER NOM FICHIER !!!
+    load_process_player_anim(gameState, gameState->sprites_player_death, PLAYER_NBFRAMES_DEATH, "skeletonally0-Destroy__(%d).bmp");
+
+    // Initialiser dimensions basées sur la première frame idle/move
+    if (gameState->sprites_player_idle_move[1]) {
+        gameState->joueur.w = gameState->sprites_player_idle_move[1]->w;
+        gameState->joueur.h = gameState->sprites_player_idle_move[1]->h;
+        printf("Dimensions joueur initialisées: %dx%d\n", gameState->joueur.w, gameState->joueur.h); fflush(stdout);
     } else {
-         printf("Vérification post-chargement OK pour %s (frame 0: %p)\n", idle_move_pattern, (void*)gameState->sprites_player_idle_move[0]); fflush(stdout);
-    }
-
-
-    // Charger l'animation Hit
-    const char *hit_pattern = "skeletonally0-GetHit__(%d).bmp"; // Adaptez le nom du fichier
-    load_process_player_anim(gameState, gameState->sprites_player_hit, PLAYER_NBFRAMES_HIT, hit_pattern);
-    if (PLAYER_NBFRAMES_HIT > 0 && gameState->sprites_player_hit[0] == NULL) {
-        printf("ERREUR FATALE: La première frame de l'animation '%s' n'a pas pu être chargée correctement!\n", hit_pattern); fflush(stdout);
-        exit(EXIT_FAILURE);
-    } else {
-         printf("Vérification post-chargement OK pour %s (frame 0: %p)\n", hit_pattern, (void*)gameState->sprites_player_hit[0]); fflush(stdout);
-    }
-
-    // Charger l'animation Death
-    const char *death_pattern = "skeletonally0-Destroy__(%d).bmp"; // Adaptez le nom du fichier
-    load_process_player_anim(gameState, gameState->sprites_player_death, PLAYER_NBFRAMES_DEATH, death_pattern);
-     // *** NOUVELLE VÉRIFICATION ***
-    if (PLAYER_NBFRAMES_DEATH > 0 && gameState->sprites_player_death[0] == NULL) {
-        printf("ERREUR FATALE: La première frame de l'animation '%s' n'a pas pu être chargée correctement!\n", death_pattern); fflush(stdout);
-        exit(EXIT_FAILURE);
-    } else {
-         printf("Vérification post-chargement OK pour %s (frame 0: %p)\n", death_pattern, (void*)gameState->sprites_player_death[0]); fflush(stdout);
-    }
-
-
-    printf("--- Tous les sprites joueur chargés et traités ---\n"); fflush(stdout);
-}
-
-// Initialise l'état du joueur au début
-void init_player_state(GameState *gameState) {
-    if (!gameState) return;
-    printf("Initialisation état joueur...\n"); fflush(stdout);
-    Vaisseau *p = &gameState->joueur;
-    p->active = 1;
-    p->health = PLAYER_INITIAL_HP;
-    p->x = 50;
-    p->y = gameState->screen_height_allegro / 2;
-    p->state_timer = 0;
-    p->state = -1;
-    printf("Appel de set_player_state avec STATE_IDLE...\n"); fflush(stdout);
-    set_player_state(gameState, STATE_IDLE);
-    printf("Retour de set_player_state. Vérification des sprites...\n"); fflush(stdout);
-    if (p->active && p->current_sprites && p->current_nb_frames > 0 && p->current_sprites[0]) {
-        p->w = p->current_sprites[0]->w;
-        p->h = p->current_sprites[0]->h;
-        printf("Joueur initialisé avec succès: état=%d, x=%d, y=%d, w=%d, h=%d, sprite[0]=%p\n",
-               p->state, p->x, p->y, p->w, p->h, (void*)p->current_sprites[0]); fflush(stdout);
-    } else {
-         printf("ERREUR CRITIQUE: Sprites invalides lors de l'initialisation du joueur!\n");
-         printf("  p->active = %d\n", p->active);
-         printf("  p->current_sprites = %p\n", (void*)p->current_sprites);
-         if (p->current_sprites) {
-             printf("  p->current_nb_frames = %d\n", p->current_nb_frames);
-             if (p->current_nb_frames > 0) {
-                 printf("  p->current_sprites[0] = %p\n", (void*)p->current_sprites[0]);
-             }
-         }
-         fflush(stdout);
-         p->active = 0;
+         allegro_message("ERREUR: Impossible de déterminer la taille du joueur (sprite 0 manquant).");
          exit(EXIT_FAILURE);
     }
+
+    printf("Toutes les animations joueur chargées.\n"); fflush(stdout);
 }
 
-// Définit l'état du joueur et met à jour les sprites/animations
+// Initialise l'état du joueur (appelé au début du niveau/respawn)
+void init_player_state(GameState *gameState) {
+     if (!gameState) return;
+     printf("Initialisation état joueur...\n"); fflush(stdout);
+     gameState->joueur.active = 1; // Vivant
+     gameState->joueur.health = PLAYER_INITIAL_HP;
+     gameState->joueur.x = 50; // Position de départ
+     gameState->joueur.y = gameState->screen_height_allegro / 2 - gameState->joueur.h / 2;
+     set_player_state(gameState, STATE_IDLE); // Commence immobile
+}
+
+// Change l'état et l'animation du joueur
 void set_player_state(GameState *gameState, PlayerState new_state) {
-    if (!gameState) return;
+    if (!gameState || !gameState->joueur.active) return;
     Vaisseau *p = &gameState->joueur;
+
+    // Éviter changement inutile sauf si on passe à HIT
     if (p->state == new_state && new_state != STATE_HIT) return;
-    PlayerState old_state = p->state;
+
+    printf("DEBUG JOUEUR: Changement état de %d vers %d\n", p->state, new_state); fflush(stdout);
+
     p->state = new_state;
     p->imgcourante = 0;
     p->cptimg = 0;
-    p->state_timer = 0;
-    p->current_sprites = NULL;
-    p->current_nb_frames = 0;
-    p->tmpimg = 0;
+    p->state_timer = 0; // Réinitialiser le timer d'état
+
     switch (new_state) {
         case STATE_IDLE:
-        case STATE_MOVING:
+        case STATE_MOVING: // Idle et Moving utilisent la même séquence de base
             p->current_sprites = gameState->sprites_player_idle_move;
             p->current_nb_frames = PLAYER_NBFRAMES_IDLE_MOVE;
             p->tmpimg = PLAYER_ANIM_SPEED_MOVE;
-            if (new_state == STATE_IDLE) { p->imgcourante = 0; }
+            // La frame spécifique (0 pour idle, 1+ pour moving) est gérée dans mettre_a_jour_joueur
             break;
         case STATE_HIT:
             p->current_sprites = gameState->sprites_player_hit;
             p->current_nb_frames = PLAYER_NBFRAMES_HIT;
             p->tmpimg = PLAYER_ANIM_SPEED_HIT;
-            p->state_timer = PLAYER_HIT_DURATION;
+            p->state_timer = PLAYER_HIT_DURATION; // Durée de l'état touché
             break;
         case STATE_DYING:
             p->current_sprites = gameState->sprites_player_death;
             p->current_nb_frames = PLAYER_NBFRAMES_DEATH;
             p->tmpimg = PLAYER_ANIM_SPEED_DEATH;
             break;
-        default:
-            printf("ERREUR: set_player_state état inconnu %d\n", new_state); fflush(stdout);
-            p->active = 0;
-            return;
     }
-    int error_found = 0;
 
-    // pleins de debug utilie mais a enlevé plus tard
-    if (p->current_sprites == NULL) {
-        printf("ERREUR CRITIQUE: Dans set_player_state (nouvel état %d): current_sprites est NULL après assignation!\n", new_state); fflush(stdout);
-        error_found = 1;
-    } else if (p->current_nb_frames <= 0) {
-        printf("ERREUR CRITIQUE: Dans set_player_state (nouvel état %d): current_nb_frames est %d!\n", new_state, p->current_nb_frames); fflush(stdout);
-        error_found = 1;
-    } else if (p->current_sprites[0] == NULL) {
-        printf("ERREUR CRITIQUE: Dans set_player_state (nouvel état %d): La première frame (current_sprites[0]) est NULL!\n", new_state); fflush(stdout);
-        error_found = 1;
-    }
-    if(error_found) {
-        p->active = 0;
-        p->current_sprites = NULL;
-        printf(" -> Joueur marqué comme inactif à cause de l'erreur de sprite.\n"); fflush(stdout);
-    } else if (p->active) {
+    // Vérifier si les sprites pour le nouvel état sont valides
+    if (!p->current_sprites || !p->current_sprites[0]) {
+        printf("ERREUR: Sprites non valides pour l'état joueur %d\n", new_state); fflush(stdout);
+        // Que faire ? Peut-être revenir à IDLE ou marquer comme mort ?
+        // Pour l'instant, on laisse, mais le dessin échouera.
+    } else {
+        // Mettre à jour w/h au cas où les anims ont des tailles différentes
         p->w = p->current_sprites[0]->w;
         p->h = p->current_sprites[0]->h;
     }
 }
 
-// Met à jour la logique du joueur
-void mettre_a_jour_joueur(GameState *gameState) {
-    if (!gameState || !gameState->joueur.active) return;
-    Vaisseau *p = &gameState->joueur;
-    int is_moving = 0; // Flag pour savoir si une touche de mouvement est pressée
-
-    // 1. Gérer les états temporaires (HIT, DYING) et le retour à IDLE
-    if (p->state == STATE_HIT) {
-        p->state_timer--; // Décrémente le timer de l'état visuel HIT
-        if (p->state_timer <= 0) {
-            // Fin de l'état HIT visuel, repasser en IDLE
-            // L'invincibilité (gérée par le timer plus long) peut continuer
-            set_player_state(gameState, STATE_IDLE);
-        }
-        // *** NOTE: On ne bloque PLUS le mouvement ici ***
-    } else if (p->state == STATE_DYING) {
-        // L'animation de mort est gérée plus bas.
-        // *** PAS de mouvement pendant l'état DYING ***
-        // On sort de la logique de mouvement/état ci-dessous
-        goto update_animation; // Saute directement à la mise à jour de l'animation
+// Inflige des dégâts au joueur
+void damage_player(GameState *gameState, int amount) {
+    if (!gameState || !gameState->joueur.active || gameState->joueur.state == STATE_DYING || gameState->joueur.state_timer > 0) {
+        // Ne pas infliger de dégâts si mort, mourant, ou invincible (état HIT ou timer invincibilité)
+        return;
     }
 
-    // 2. Gérer les déplacements (s'exécute si état IDLE, MOVING ou HIT)
-    int dx = 0;
-    int dy = 0;
-    if (key[KEY_UP])   { dy -= PLAYER_SPEED; is_moving = 1; }
-    if (key[KEY_DOWN]) { dy += PLAYER_SPEED; is_moving = 1; }
-    if (key[KEY_LEFT]) { dx -= PLAYER_SPEED; is_moving = 1; }
-    if (key[KEY_RIGHT]){ dx += PLAYER_SPEED; is_moving = 1; }
+    printf("Joueur touché ! (-%d HP)\n", amount); fflush(stdout);
+    gameState->joueur.health -= amount;
 
-    // Appliquer le déplacement
-    p->x += dx;
-    p->y += dy;
-
-    // Limiter le joueur à l'écran
-    if (p->x < 0) p->x = 0;
-    if (p->y < 0) p->y = 0;
-    if (p->w > 0 && p->x + p->w > gameState->screen_width_allegro) {
-        p->x = gameState->screen_width_allegro - p->w;
-    }
-    if (p->h > 0 && p->y + p->h > gameState->screen_height_allegro) {
-        p->y = gameState->screen_height_allegro - p->h;
-    }
-
-    // 3. Changer l'état entre IDLE et MOVING (seulement si pas en état HIT)
-    //    On ne veut pas passer en MOVING si on est visuellement en HIT
-    if (p->state != STATE_HIT) {
-        if (is_moving && p->state == STATE_IDLE) {
-            set_player_state(gameState, STATE_MOVING);
-        } else if (!is_moving && p->state == STATE_MOVING) {
-            set_player_state(gameState, STATE_IDLE);
-        }
-    }
-
-
-update_animation: // Label pour le goto de l'état DYING
-
-    // 4. Mettre à jour l'animation (pour tous les états)
-    if (p->current_sprites && p->current_nb_frames > 0 && p->tmpimg > 0) {
-        // Ne pas animer si en état IDLE et on veut une frame fixe
-        if (p->state == STATE_IDLE && p->current_nb_frames > 1) {
-             p->imgcourante = 0; // Bloquer sur la frame 0 pour IDLE   à changer plus tard MAUVAISE LOGIQUE DE JEU
-        } else {
-            // Animer pour les autres états (MOVING, HIT, DYING)
-            p->cptimg++;
-            if (p->cptimg >= p->tmpimg) {
-                p->cptimg = 0;
-                p->imgcourante++;
-
-                // Gérer la fin de l'animation
-                if (p->imgcourante >= p->current_nb_frames) {
-                    if (p->state == STATE_DYING) {
-                        // Fin de l'animation de mort -> GAME OVER
-                        p->active = 0; // Désactiver le joueur logiquement
-                        gameState->current_game_state = GAME_STATE_GAME_OVER; // Changer l'état global du jeu
-                        printf("Joueur désactivé (fin anim mort). GAME OVER.\n"); fflush(stdout);
-                    } else if (p->state == STATE_HIT) {
-                        // Fin anim HIT, mais l'état a déjà été changé par le timer.
-                        // Reste sur la dernière frame de HIT jusqu'à ce que l'état change.
-                        p->imgcourante = p->current_nb_frames - 1;
-                    } else if (p->state == STATE_MOVING) {
-                        // Boucler l'animation de mouvement (frames 1, 2, 3...)
-                        if (PLAYER_NBFRAMES_IDLE_MOVE > 1) {
-                            p->imgcourante = 1; // Retourne à la première frame de mouvement
-                        }
-                    } else {
-                         p->imgcourante = 0; // Boucle simple
-                    }
-                }
-            }
-        }
-         // Mettre à jour w/h basé sur la frame actuelle (si elle a changé)
-         if (p->active && p->imgcourante >= 0 && p->imgcourante < p->current_nb_frames && p->current_sprites[p->imgcourante]) {
-              p->w = p->current_sprites[p->imgcourante]->w;
-              p->h = p->current_sprites[p->imgcourante]->h;
-         }
-    }
-
-    // 5. Gérer le timer d'invincibilité (indépendant de l'état visuel HIT)
-    //    Ce timer est démarré dans damage_player
-    if (p->state_timer > PLAYER_HIT_DURATION) { // Si on est dans la période d'invincibilité étendue
-        p->state_timer--;
-        if (p->state_timer == PLAYER_HIT_DURATION) {
-             // Fin de l'invincibilité pure, l'état visuel HIT peut encore être actif ou non
-             // printf("DEBUG: Fin invincibilité joueur.\n"); fflush(stdout);
-        }
+    if (gameState->joueur.health <= 0) {
+        gameState->joueur.health = 0;
+        set_player_state(gameState, STATE_DYING); // Déclencher l'animation de mort
+    } else {
+        set_player_state(gameState, STATE_HIT); // Déclencher l'animation "touché"
+        // Mettre un timer d'invincibilité plus long que l'anim HIT
+        gameState->joueur.state_timer = PLAYER_INVINCIBILITY_DURATION;
     }
 }
 
 
-// Dessine le joueur
-void dessiner_joueur(GameState *gameState) {
-    if (!gameState || !gameState->buffer || !gameState->joueur.active) return;
+// Met à jour le joueur (état, position, animation)
+void mettre_a_jour_joueur(GameState *gameState) {
+    if (!gameState || !gameState->joueur.active) return;
     Vaisseau *p = &gameState->joueur;
+
+    // --- Gérer les états temporisés ---
+    if (p->state_timer > 0) {
+        p->state_timer--;
+        if (p->state_timer == 0 && p->state == STATE_HIT) {
+            // Fin de l'invincibilité/état HIT, revenir à IDLE (sera mis à MOVING si touche pressée)
+            set_player_state(gameState, STATE_IDLE);
+        }
+    }
+
+    // --- Mouvement (seulement si pas en train de mourir) ---
+    int wants_to_move = 0;
+    if (p->state != STATE_DYING) {
+        int dx = 0, dy = 0;
+        if (key[KEY_UP])    { dy -= PLAYER_SPEED; wants_to_move = 1; }
+        if (key[KEY_DOWN])  { dy += PLAYER_SPEED; wants_to_move = 1; }
+        if (key[KEY_LEFT])  { dx -= PLAYER_SPEED; wants_to_move = 1; }
+        if (key[KEY_RIGHT]) { dx += PLAYER_SPEED; wants_to_move = 1; }
+        p->x += dx;
+        p->y += dy;
+    }
+
+    // --- Mise à jour de l'état (Idle/Moving si pas HIT ou DYING) ---
+    if (p->state != STATE_HIT && p->state != STATE_DYING) {
+        if (wants_to_move) {
+            if (p->state == STATE_IDLE) {
+                set_player_state(gameState, STATE_MOVING);
+                if (PLAYER_NBFRAMES_IDLE_MOVE > 1) p->imgcourante = 1; // Commencer anim move à frame 1
+            }
+        } else {
+            if (p->state == STATE_MOVING) {
+                set_player_state(gameState, STATE_IDLE);
+            }
+        }
+    }
+
+    // --- Mise à jour de l'animation de l'état actuel ---
+    if (p->current_sprites) {
+        p->cptimg++;
+        if (p->cptimg >= p->tmpimg) {
+            p->cptimg = 0;
+            p->imgcourante++;
+
+            // Gérer la fin de l'animation
+            if (p->imgcourante >= p->current_nb_frames) {
+                if (p->state == STATE_DYING) {
+                    // Fin de l'animation de mort
+                    p->imgcourante = p->current_nb_frames - 1; // Rester sur la dernière frame
+                    p->active = 0; // Marquer comme inactif (mort)
+                    gameState->current_game_state = GAME_STATE_GAME_OVER; // Déclencher Game Over
+                    printf("Joueur animation mort terminée -> GAME OVER\n"); fflush(stdout);
+                } else if (p->state == STATE_HIT) {
+                    // Boucler sur l'animation HIT tant que l'état est HIT
+                    p->imgcourante = 0;
+                } else if (p->state == STATE_MOVING) {
+                    // Boucler sur les frames de mouvement (1 à N-1)
+                    p->imgcourante = (PLAYER_NBFRAMES_IDLE_MOVE > 1) ? 1 : 0;
+                } else { // STATE_IDLE
+                    p->imgcourante = 0; // Rester sur la frame idle
+                }
+            }
+        }
+    }
+
+    // --- Contrôle des bords (si toujours actif) ---
+    if (p->active) {
+        if (p->x < 0) p->x = 0;
+        if (p->x > gameState->screen_width_allegro - p->w) p->x = gameState->screen_width_allegro - p->w;
+        if (p->y < 0) p->y = 0;
+        if (p->y > gameState->screen_height_allegro - p->h) p->y = gameState->screen_height_allegro - p->h;
+    }
+}
+
+// Dessine le joueur en utilisant l'animation de l'état actuel
+void dessiner_joueur(GameState *gameState) {
+     if (!gameState || !gameState->buffer || !gameState->joueur.active) return;
+     Vaisseau *p = &gameState->joueur;
+     BITMAP *dest = gameState->buffer;
+
+    // Vérifier si les sprites et la frame sont valides
     if (p->current_sprites &&
         p->imgcourante >= 0 && p->imgcourante < p->current_nb_frames &&
         p->current_sprites[p->imgcourante])
     {
-        int doit_dessiner = 1;
-        if (p->state != STATE_HIT && p->state_timer > PLAYER_HIT_DURATION) { // Clignote si invincible mais pas en état HIT visuel
-            if ((gameState->game_loop_counter % 8) < 4) {
-                doit_dessiner = 0;
-            }
+        // Utiliser draw_sprite car les bitmaps sont prétraités
+        draw_sprite(dest, p->current_sprites[p->imgcourante], p->x, p->y);
+
+        // Optionnel: Afficher un clignotement pendant l'invincibilité après HIT
+        if (p->state == STATE_HIT && p->state_timer > 0 && (p->state_timer / 4) % 2 == 0) {
+             // Ne rien dessiner une frame sur deux (ou utiliser un filtre)
+             // Ou dessiner avec alpha : draw_trans_sprite(dest, p->current_sprites[p->imgcourante], p->x, p->y);
+             // Pour l'instant, on ne fait rien de spécial, juste l'anim HIT
         }
-        if (doit_dessiner) {
-            draw_sprite(gameState->buffer, p->current_sprites[p->imgcourante], p->x, p->y);
-        }
-    } else if (p->active) {
-        printf("ERREUR: Tentative de dessin joueur état %d frame %d invalide.\n", p->state, p->imgcourante);
-        fflush(stdout);
-        rectfill(gameState->buffer, p->x, p->y, p->x + 10, p->y + 10, makecol(255, 255, 0)); // Jaune
+
+    } else {
+         printf("ERREUR: Tentative de dessin joueur état %d frame %d invalide.\n", p->state, p->imgcourante); fflush(stdout);
+         rectfill(dest, p->x, p->y, p->x + p->w, p->y + p->h, makecol(0, 255, 0));
     }
 }
 
-// Inflige des dégâts au joueur
-void damage_player(GameState *gameState, int damage_amount) {
-     if (!gameState || !gameState->joueur.active || gameState->joueur.state == STATE_DYING) return;
-     Vaisseau *p = &gameState->joueur;
-     if (p->state_timer > PLAYER_HIT_DURATION) { // Utilise le timer étendu pour l'invincibilité
-         return;
-     }
-     printf("Joueur touché! Vie: %d -> ", p->health); fflush(stdout);
-     p->health -= damage_amount;
-     printf("%d\n", p->health); fflush(stdout);
-     if (p->health <= 0) {
-         set_player_state(gameState, STATE_DYING);
-         printf("Joueur passe à l'état DYING.\n"); fflush(stdout);
-     } else {
-         set_player_state(gameState, STATE_HIT);
-         p->state_timer = PLAYER_INVINCIBILITY_DURATION; // Démarre l'invincibilité longue
-         printf("Joueur passe à l'état HIT (Invincible pour %d frames).\n", p->state_timer); fflush(stdout);
-     }
+void nettoyer_ressources_joueur(GameState *gameState) {
+    if (!gameState) return;
+    printf("Nettoyage ressources joueur...\n"); fflush(stdout);
+    // Fonction helper pour détruire un tableau de bitmaps
+    void destroy_bitmap_array(BITMAP* arr[], int size) {
+        if (!arr) return;
+        for (int i = 0; i < size; i++) { if (arr[i]) { destroy_bitmap(arr[i]); arr[i] = NULL; } }
+    }
+    // Détruire toutes les animations
+    destroy_bitmap_array(gameState->sprites_player_idle_move, PLAYER_NBFRAMES_IDLE_MOVE);
+    destroy_bitmap_array(gameState->sprites_player_hit, PLAYER_NBFRAMES_HIT);
+    destroy_bitmap_array(gameState->sprites_player_death, PLAYER_NBFRAMES_DEATH);
+    printf("Sprites joueur détruits.\n"); fflush(stdout);
 }
