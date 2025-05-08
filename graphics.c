@@ -40,8 +40,8 @@ int initialisation_allegro(GameState *gameState) {
     set_color_depth(desktop_color_depth());
     printf("   -> set_color_depth() OK.\n"); fflush(stdout);
 
-    int requested_w = 800; // Test
-    int requested_h = 600; // Test
+    int requested_w = 1920; // Test
+    int requested_h = 1080; // Test
     printf("6. Tentative set_gfx_mode(%dx%d, WINDOWED)...\n", requested_w, requested_h); fflush(stdout);
     if (set_gfx_mode(GFX_AUTODETECT_WINDOWED, requested_w, requested_h, 0, 0) != 0) {
         printf("   -> GFX_AUTODETECT_WINDOWED (%dx%d) échoué. Tentative GFX_SAFE...\n", requested_w, requested_h); fflush(stdout);
