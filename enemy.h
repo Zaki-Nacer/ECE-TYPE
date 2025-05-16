@@ -17,6 +17,7 @@ void spawn_ennemi(GameState *gameState, int type, int pos_x_monde, int pos_y_mon
 // Met à jour la position et l'état de tous les ennemis actifs DANS gameState
 void mettre_a_jour_ennemis(GameState *gameState);
 
+
 // Dessine tous les ennemis actifs (depuis gameState) sur le buffer de destination (gameState->buffer)
 void dessiner_ennemis(GameState *gameState);
 

@@ -2,15 +2,9 @@
 #include "defs.h"
 #include "graphics.h"
 #include <stdio.h>
-#include <math.h>
-
-// --- Définition des Variables Globales HUD ---
-// (Pas de globales ici)
-
-// --- Implémentation des Fonctions ---
 
 void charger_ressources_hud(GameState *gameState) {
-    if (!gameState) { /* ... */ return; }
+    if (!gameState) {  return; }
     BITMAP *original_vide = NULL;
     BITMAP *temp_pleine = NULL;
 
@@ -25,11 +19,9 @@ void charger_ressources_hud(GameState *gameState) {
         gameState->barre_progression_vide = create_bitmap(temp_pleine->w, temp_pleine->h);
         if (!gameState->barre_progression_vide) { /* ... */ exit(EXIT_FAILURE); }
 
-        // *** CORRIGÉ: Appel correct à stretch_blit (10 arguments) ***
         stretch_blit(original_vide, gameState->barre_progression_vide,
                      0, 0, original_vide->w, original_vide->h, // Source
                      0, 0, temp_pleine->w, temp_pleine->h);    // Destination
-        // -----------------------------------------------------
 
         destroy_bitmap(original_vide);
         original_vide = NULL;
@@ -44,7 +36,6 @@ void charger_ressources_hud(GameState *gameState) {
 }
 
 void mettre_a_jour_hud(GameState *gameState) {
-    // ... (inchangé) ...
      if (!gameState) return;
     if (gameState->hud_displayed_level_progress == -1) { gameState->hud_displayed_level_progress = 0; }
     long target_progress = gameState->game_loop_counter;
@@ -58,7 +49,6 @@ void mettre_a_jour_hud(GameState *gameState) {
 }
 
 void dessiner_barre_progression(GameState *gameState, BITMAP *dest, int x, int y, int value, int max_value) {
-    // ... (inchangé) ...
     if (!gameState || !dest || !gameState->barre_progression_vide || !gameState->barre_progression_pleine) return;
     BITMAP *barre_vide = gameState->barre_progression_vide;
     BITMAP *barre_pleine = gameState->barre_progression_pleine;
@@ -72,16 +62,14 @@ void dessiner_barre_progression(GameState *gameState, BITMAP *dest, int x, int y
 }
 
 void dessiner_hud(GameState *gameState) {
-    // ... (inchangé - utilise les dimensions réelles pour positionner si besoin) ...
     if (!gameState || !gameState->buffer) return;
     BITMAP *dest = gameState->buffer;
     int barre_x = 10;
-    int barre_y = 10;
+    int barre_y = 46;
     dessiner_barre_progression(gameState, dest, barre_x, barre_y, gameState->hud_displayed_level_progress, LEVEL_DURATION_FRAMES);
 }
 
 void nettoyer_ressources_hud(GameState *gameState) {
-    // ... (inchangé) ...
     if (!gameState) return;
     printf("Nettoyage ressources HUD...\n"); fflush(stdout);
     if (gameState->barre_progression_vide) { destroy_bitmap(gameState->barre_progression_vide); gameState->barre_progression_vide = NULL; }
