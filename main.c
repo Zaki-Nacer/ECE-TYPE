@@ -11,6 +11,8 @@
 #include <time.h>
 #include <string.h>
 #include <allegro.h> // Pour key[], rest(), etc.
+#include "menu.h"
+
 
 // --- Définition Variable Globale Compteur ---
 // Déplacée dans GameState pour une meilleure encapsulation
