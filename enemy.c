@@ -1,160 +1,143 @@
 #include "enemy.h"
 #include "defs.h"
-#include "graphics.h" // Pour charger_bitmap_safe et make_white_transparent
+#include "graphics.h"
+#include "projectile_ennemi.h"
+#include "item.h"
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
 
 // --- Implémentation des Fonctions ---
 
-// Fonction interne pour charger, redimensionner et traiter une séquence d'animation
-// (Fonction inchangée par rapport à la correction précédente)
 void load_process_enemy_anim(GameState *gameState, BITMAP *dest_array[], int nb_frames, const char *base_filename_pattern) {
+    // ... (code inchangé) ...
     if (!gameState) { printf("ERREUR: gameState NULL dans load_process_enemy_anim\n"); fflush(stdout); return; }
-
     char filename[100];
     BITMAP *original_bmp = NULL;
     BITMAP *resized_bmp = NULL;
-
-    printf("Chargement animation ennemi: %s (%d frames)...\n", base_filename_pattern, nb_frames); fflush(stdout);
-
-    for (int i = 0; i < nb_frames; i++) { // Boucle de 0 à nb_frames - 1
+    for (int i = 0; i < nb_frames; i++) {
         sprintf(filename, base_filename_pattern, i + 1);
         original_bmp = charger_bitmap_safe(filename);
-
         int new_w = (int)roundf(original_bmp->w * PLAYER_SCALE_FACTOR);
         int new_h = (int)roundf(original_bmp->h * PLAYER_SCALE_FACTOR);
         if (new_w <= 0) new_w = 1; if (new_h <= 0) new_h = 1;
-
         resized_bmp = create_bitmap(new_w, new_h);
         if (!resized_bmp) {
             allegro_message("Erreur creation bitmap redimensionné pour ennemi!");
-            exit(EXIT_FAILURE);
+            allegro_exit(); exit(EXIT_FAILURE);
         }
-
         stretch_blit(original_bmp, resized_bmp, 0, 0, original_bmp->w, original_bmp->h, 0, 0, new_w, new_h);
         destroy_bitmap(original_bmp);
-
         make_white_transparent(gameState, resized_bmp);
-
         dest_array[i] = resized_bmp;
-        // printf(" -> Frame %d (%s) chargée/redim/traitée (%dx%d) -> index %d\n", i + 1, filename, new_w, new_h, i); fflush(stdout);
     }
-     printf(" -> Animation %s chargée.\n", base_filename_pattern); fflush(stdout);
 }
 
-// Charge tous les sprites modèles des ennemis DANS gameState
-// (Fonction inchangée par rapport à la correction précédente)
 void charger_sprites_ennemis(GameState *gameState) {
+    // ... (code inchangé) ...
     if (!gameState) { printf("ERREUR: gameState NULL dans charger_sprites_ennemis\n"); fflush(stdout); return; }
-    printf("--- Chargement Sprites Ennemis ---\n"); fflush(stdout);
-
-    // Type 0
+    printf("--- Chargement Sprites Ennemis (Types 0-2 pour Niveaux 1 & 3) ---\n"); fflush(stdout);
     load_process_enemy_anim(gameState, gameState->sprites_enemy0_move, ENEMY_NBFRAMES_MOVE, "skeleton0-Moving_ (%d).bmp");
     load_process_enemy_anim(gameState, gameState->sprites_enemy0_hit, ENEMY_NBFRAMES_HIT, "skeleton0-GetHit_ (%d).bmp");
     load_process_enemy_anim(gameState, gameState->sprites_enemy0_death, ENEMY_NBFRAMES_DEATH, "skeleton0-Destroyed_ (%d).bmp");
-
-    // Type 1
     load_process_enemy_anim(gameState, gameState->sprites_enemy1_move, ENEMY_NBFRAMES_MOVE, "skeleton1-Moving_-_(%d).bmp");
     load_process_enemy_anim(gameState, gameState->sprites_enemy1_hit, ENEMY_NBFRAMES_HIT, "skeleton1-GetHit__(%d).bmp");
     load_process_enemy_anim(gameState, gameState->sprites_enemy1_death, ENEMY_NBFRAMES_DEATH, "skeleton1-Destroyed__(%d).bmp");
-
-    // Type 2
     load_process_enemy_anim(gameState, gameState->sprites_enemy2_move, ENEMY_NBFRAMES_MOVE, "skeleton2-Moving__(%d).bmp");
     load_process_enemy_anim(gameState, gameState->sprites_enemy2_hit, ENEMY_NBFRAMES_HIT, "skeleton2-GetHit__(%d).bmp");
     load_process_enemy_anim(gameState, gameState->sprites_enemy2_death, ENEMY_NBFRAMES_DEATH, "skeleton2-Destroyed__(%d).bmp");
-
-    printf("Tous les sprites ennemis chargés et traités.\n"); fflush(stdout);
+    printf("Sprites ennemis (types 0-2) chargés et traités.\n"); fflush(stdout);
 }
 
-// Initialise le tableau ennemis DANS gameState
-// (Fonction inchangée par rapport à la correction précédente)
 void initialiser_ennemis_array(GameState *gameState) {
+    // ... (code inchangé) ...
     if (!gameState) return;
-    printf("Initialisation du tableau d'ennemis...\n"); fflush(stdout);
     for (int i = 0; i < MAX_ENNEMIS; i++) {
         gameState->ennemis[i].active = 0;
         gameState->ennemis[i].current_sprites = NULL;
     }
 }
 
-// Définit l'état d'un ennemi spécifique DANS gameState
-// *** MODIFIÉ: Ajout de logs de vérification des sprites ***
 void set_enemy_state(GameState *gameState, Ennemi *e, EnemyState new_state) {
-    if (!gameState || !e) return; // Vérifier e aussi
-    // Si l'ennemi n'était pas actif, on ne change pas son état (sauf si c'est l'init dans spawn)
-    if (!e->active && new_state != ENEMY_STATE_MOVING) return;
-    // Éviter changement inutile sauf si on passe à HIT
+    // ... (code de gestion des états et sprites inchangé, mais le drop d'item est déjà là) ...
+    if (!gameState || !e) return;
+    if (!e->active && new_state != ENEMY_STATE_MOVING && e->state != -1) return;
     if (e->state == new_state && new_state != ENEMY_STATE_HIT) return;
 
-    long enemy_index = e - gameState->ennemis; // Pour identifier l'ennemi dans les logs
-    // printf("DEBUG: set_enemy_state pour Ennemi %ld -> nouvel état %d (était %d)\n", enemy_index, new_state, e->state); fflush(stdout);
-
+    EnemyState old_state = e->state;
     e->state = new_state;
     e->imgcourante = 0;
     e->cptimg = 0;
-    e->state_timer = 0;
-    e->current_sprites = NULL; // Important de réinitialiser avant d'assigner
+    e->current_sprites = NULL;
     e->current_nb_frames = 0;
-    e->tmpimg = 0;
+    e->tmpimg = ENEMY_ANIM_SPEED_MOVE;
 
-    // Assigner le bon tableau de sprites, nb_frames et vitesse
-    switch (e->type) {
-        case 0:
-            switch (new_state) {
-                case ENEMY_STATE_MOVING: e->current_sprites = gameState->sprites_enemy0_move; e->current_nb_frames = ENEMY_NBFRAMES_MOVE; e->tmpimg = ENEMY_ANIM_SPEED_MOVE; break;
-                case ENEMY_STATE_HIT:    e->current_sprites = gameState->sprites_enemy0_hit;  e->current_nb_frames = ENEMY_NBFRAMES_HIT;  e->tmpimg = ENEMY_ANIM_SPEED_HIT; e->state_timer = ENEMY_HIT_DURATION; break;
-                case ENEMY_STATE_DYING:  e->current_sprites = gameState->sprites_enemy0_death; e->current_nb_frames = ENEMY_NBFRAMES_DEATH; e->tmpimg = ENEMY_ANIM_SPEED_DEATH; break;
-            }
-            break;
-        case 1:
-             switch (new_state) {
-                case ENEMY_STATE_MOVING: e->current_sprites = gameState->sprites_enemy1_move; e->current_nb_frames = ENEMY_NBFRAMES_MOVE; e->tmpimg = ENEMY_ANIM_SPEED_MOVE; break;
-                case ENEMY_STATE_HIT:    e->current_sprites = gameState->sprites_enemy1_hit;  e->current_nb_frames = ENEMY_NBFRAMES_HIT;  e->tmpimg = ENEMY_ANIM_SPEED_HIT; e->state_timer = ENEMY_HIT_DURATION; break;
-                case ENEMY_STATE_DYING:  e->current_sprites = gameState->sprites_enemy1_death; e->current_nb_frames = ENEMY_NBFRAMES_DEATH; e->tmpimg = ENEMY_ANIM_SPEED_DEATH; break;
-            }
-            break;
-        case 2:
-             switch (new_state) {
-                case ENEMY_STATE_MOVING: e->current_sprites = gameState->sprites_enemy2_move; e->current_nb_frames = ENEMY_NBFRAMES_MOVE; e->tmpimg = ENEMY_ANIM_SPEED_MOVE; break;
-                case ENEMY_STATE_HIT:    e->current_sprites = gameState->sprites_enemy2_hit;  e->current_nb_frames = ENEMY_NBFRAMES_HIT;  e->tmpimg = ENEMY_ANIM_SPEED_HIT; e->state_timer = ENEMY_HIT_DURATION; break;
-                case ENEMY_STATE_DYING:  e->current_sprites = gameState->sprites_enemy2_death; e->current_nb_frames = ENEMY_NBFRAMES_DEATH; e->tmpimg = ENEMY_ANIM_SPEED_DEATH; break;
-            }
-            break;
-        default:
-            printf("ERREUR: set_enemy_state type ennemi inconnu %d pour ennemi %ld\n", e->type, enemy_index); fflush(stdout);
-            e->active = 0; // Désactiver si type inconnu
-            return;
-    }
-
-    // *** Vérification cruciale des sprites assignés ***
-    if (e->current_sprites == NULL) {
-        printf("ERREUR CRITIQUE: Ennemi %ld (type %d), état %d: current_sprites est NULL après assignation!\n", enemy_index, e->type, new_state); fflush(stdout);
-        e->active = 0; // Désactiver par sécurité
-    } else if (e->current_nb_frames <= 0) {
-        printf("ERREUR CRITIQUE: Ennemi %ld (type %d), état %d: current_nb_frames est %d!\n", enemy_index, e->type, new_state, e->current_nb_frames); fflush(stdout);
-        e->active = 0; // Désactiver par sécurité
-    } else if (e->current_sprites[0] == NULL) {
-        // Vérifier au moins la première frame
-        printf("ERREUR CRITIQUE: Ennemi %ld (type %d), état %d: La première frame (current_sprites[0]) est NULL!\n", enemy_index, e->type, new_state); fflush(stdout);
-        e->active = 0; // Désactiver par sécurité
+    if (e->type >= ENEMY_TYPE_0 && e->type <= ENEMY_TYPE_2) {
+        switch (e->type) {
+            case ENEMY_TYPE_0:
+                switch (new_state) {
+                    case ENEMY_STATE_MOVING: e->current_sprites = gameState->sprites_enemy0_move; e->current_nb_frames = ENEMY_NBFRAMES_MOVE; e->tmpimg = ENEMY_ANIM_SPEED_MOVE; break;
+                    case ENEMY_STATE_HIT:    e->current_sprites = gameState->sprites_enemy0_hit;  e->current_nb_frames = ENEMY_NBFRAMES_HIT;  e->tmpimg = ENEMY_ANIM_SPEED_HIT; e->state_timer = ENEMY_HIT_DURATION; break;
+                    case ENEMY_STATE_DYING:  e->current_sprites = gameState->sprites_enemy0_death; e->current_nb_frames = ENEMY_NBFRAMES_DEATH; e->tmpimg = ENEMY_ANIM_SPEED_DEATH; break;
+                }
+                break;
+            case ENEMY_TYPE_1:
+                 switch (new_state) {
+                    case ENEMY_STATE_MOVING: e->current_sprites = gameState->sprites_enemy1_move; e->current_nb_frames = ENEMY_NBFRAMES_MOVE; e->tmpimg = ENEMY_ANIM_SPEED_MOVE; break;
+                    case ENEMY_STATE_HIT:    e->current_sprites = gameState->sprites_enemy1_hit;  e->current_nb_frames = ENEMY_NBFRAMES_HIT;  e->tmpimg = ENEMY_ANIM_SPEED_HIT; e->state_timer = ENEMY_HIT_DURATION; break;
+                    case ENEMY_STATE_DYING:  e->current_sprites = gameState->sprites_enemy1_death; e->current_nb_frames = ENEMY_NBFRAMES_DEATH; e->tmpimg = ENEMY_ANIM_SPEED_DEATH; break;
+                }
+                break;
+            case ENEMY_TYPE_2:
+                 switch (new_state) {
+                    case ENEMY_STATE_MOVING: e->current_sprites = gameState->sprites_enemy2_move; e->current_nb_frames = ENEMY_NBFRAMES_MOVE; e->tmpimg = ENEMY_ANIM_SPEED_MOVE; break;
+                    case ENEMY_STATE_HIT:    e->current_sprites = gameState->sprites_enemy2_hit;  e->current_nb_frames = ENEMY_NBFRAMES_HIT;  e->tmpimg = ENEMY_ANIM_SPEED_HIT; e->state_timer = ENEMY_HIT_DURATION; break;
+                    case ENEMY_STATE_DYING:  e->current_sprites = gameState->sprites_enemy2_death; e->current_nb_frames = ENEMY_NBFRAMES_DEATH; e->tmpimg = ENEMY_ANIM_SPEED_DEATH; break;
+                }
+                break;
+        }
+        if (e->current_sprites && e->current_nb_frames > 0 && e->current_sprites[0]) {
+            e->w = e->current_sprites[0]->w;
+            e->h = e->current_sprites[0]->h;
+        } else if (new_state != ENEMY_STATE_DYING) {
+             if (e->w <=0) e->w = 30;
+             if (e->h <=0) e->h = 30;
+        }
     } else {
-        // Si tout semble OK, mettre à jour w/h
-        e->w = e->current_sprites[0]->w;
-        e->h = e->current_sprites[0]->h;
-        // printf("DEBUG: Ennemi %ld (type %d), état %d: Sprites assignés OK (w=%d, h=%d).\n", enemy_index, e->type, new_state, e->w, e->h); fflush(stdout);
+        if (e->w <=0) e->w = 30;
+        if (e->h <=0) e->h = 30;
+        if (new_state == ENEMY_STATE_HIT) e->state_timer = ENEMY_HIT_DURATION;
     }
-     // Si l'ennemi a été désactivé à cause d'une erreur de sprite, s'assurer que current_sprites est NULL
-    if (!e->active) {
-        e->current_sprites = NULL;
+
+    if (new_state == ENEMY_STATE_DYING && old_state != ENEMY_STATE_DYING) {
+        if (e->type == ENEMY_TYPE_5) {
+            if (rand() % 3 == 0) {
+                printf("Ennemi Type 5 (bleu) détruit, drop ITEM_SCREEN_CLEAR.\n"); fflush(stdout);
+                spawn_item(gameState, ITEM_TYPE_SCREEN_CLEAR, e->x + e->w / 2, e->y + e->h / 2);
+            }
+        } else if (e->type == ENEMY_TYPE_6) {
+             printf("Ennemi Type 6 (violet) détruit, drop ITEM_HEALTH_PACK.\n"); fflush(stdout);
+             spawn_item(gameState, ITEM_TYPE_HEALTH_PACK, e->x + e->w / 2, e->y + e->h / 2);
+        }
     }
 }
 
-
-// Crée un ennemi DANS gameState
-// *** MODIFIÉ: Ajout de logs après l'appel à set_enemy_state ***
 void spawn_ennemi(GameState *gameState, int type, int pos_x_monde, int pos_y_monde) {
+    // ... (code inchangé) ...
     if (!gameState) return;
+
+    if (type == ENEMY_TYPE_4) {
+        int active_type4_count = 0;
+        for (int i = 0; i < MAX_ENNEMIS; i++) {
+            if (gameState->ennemis[i].active && gameState->ennemis[i].type == ENEMY_TYPE_4) {
+                active_type4_count++;
+            }
+        }
+        if (active_type4_count >= MAX_ACTIVE_ENEMY_TYPE_4) {
+            return;
+        }
+    }
+
     int slot_trouve = -1;
     for (int i = 0; i < MAX_ENNEMIS; i++) {
         if (!gameState->ennemis[i].active) {
@@ -165,166 +148,221 @@ void spawn_ennemi(GameState *gameState, int type, int pos_x_monde, int pos_y_mon
 
     if (slot_trouve != -1) {
         Ennemi *e = &gameState->ennemis[slot_trouve];
-
-        // Initialiser les propriétés de base
-        e->active = 1; // Marquer comme actif *avant* d'appeler set_enemy_state
+        e->active = 1;
         e->type = type;
         e->x = pos_x_monde;
         e->y = pos_y_monde;
-        e->health = ENEMY_HP;
-        e->state = -1; // Mettre un état invalide pour forcer le changement dans set_enemy_state
+        e->state = -1;
+        e->current_sprites = NULL;
+        e->current_nb_frames = 0;
+        e->w = 30; e->h = 30;
 
-        printf("DEBUG: Tentative de spawn ennemi type %d dans slot %d à monde (%d, %d)\n", type, slot_trouve, e->x, e->y); fflush(stdout);
+        switch (type) {
+            case ENEMY_TYPE_0: e->health = ENEMY_HP_TYPE_0; e->fire_interval = ENEMY_FIRE_INTERVAL_TYPE_0; break;
+            case ENEMY_TYPE_1: e->health = ENEMY_HP_TYPE_1; e->fire_interval = ENEMY_FIRE_INTERVAL_TYPE_1; break;
+            case ENEMY_TYPE_2: e->health = ENEMY_HP_TYPE_2; e->fire_interval = ENEMY_FIRE_INTERVAL_TYPE_2; break;
 
-        // Définir l'état initial (MOVING) et charger les sprites correspondants
-        set_enemy_state(gameState, e, ENEMY_STATE_MOVING);
-
-        // *** Vérifier si l'ennemi est toujours actif APRES set_enemy_state ***
-        if (e->active) {
-             printf("DEBUG: Ennemi %d (type %d) spawné avec succès. État: %d, HP: %d, w:%d, h:%d\n",
-                    slot_trouve, type, e->state, e->health, e->w, e->h); fflush(stdout);
-        } else {
-             // Si set_enemy_state l'a désactivé (probablement erreur sprite)
-             printf("ERREUR: Ennemi %d (type %d) a été désactivé immédiatement après spawn (vérifier logs set_enemy_state).\n",
-                    slot_trouve, type); fflush(stdout);
-             // L'ennemi reste inactif dans le slot
+            case ENEMY_TYPE_3:
+                e->health = ENEMY_HP_TYPE_3;
+                e->fire_interval = ENEMY_FIRE_INTERVAL_TYPE_3;
+                e->speed_y = ENEMY_SPEED_Y_TYPE3;
+                e->direction_y = (rand() % 2 == 0) ? 1 : -1;
+                e->w = 32; e->h = 32;
+                break;
+            case ENEMY_TYPE_4:
+                e->health = ENEMY_HP_TYPE_4;
+                e->fire_interval = ENEMY_FIRE_INTERVAL_TYPE_4;
+                e->speed_y = 0;
+                e->direction_y = 0;
+                e->w = 40; e->h = 40;
+                break;
+            case ENEMY_TYPE_5:
+                e->health = ENEMY_HP_TYPE_5;
+                e->fire_interval = ENEMY_FIRE_INTERVAL_TYPE_5;
+                e->speed_y = 0;
+                e->direction_y = 0;
+                e->w = 28; e->h = 28;
+                break;
+            case ENEMY_TYPE_6:
+                e->health = ENEMY_HP_TYPE_6;
+                e->fire_interval = ENEMY_FIRE_INTERVAL_TYPE_6;
+                e->speed_y = 0;
+                e->direction_y = 0;
+                e->w = 30; e->h = 30;
+                break;
+            default:
+                printf("ERREUR: Type d'ennemi %d inconnu lors du spawn.\n", type); fflush(stdout);
+                e->active = 0;
+                return;
         }
-
-    } else {
-        printf("Attention: Tableau ennemis plein, impossible de spawner type %d !\n", type); fflush(stdout);
+        e->fire_timer = e->fire_interval / 2 + rand() % (e->fire_interval / 2);
+        set_enemy_state(gameState, e, ENEMY_STATE_MOVING);
     }
 }
 
 
-// Met à jour les ennemis DANS gameState
-// (Fonction inchangée par rapport à la correction précédente)
 void mettre_a_jour_ennemis(GameState *gameState) {
     if (!gameState) return;
     for (int i = 0; i < MAX_ENNEMIS; i++) {
         Ennemi *e = &gameState->ennemis[i];
         if (e->active) {
+            int vitesse_x_propre = 0;
 
-            // 1. Gérer les états et transitions
-            switch (e->state) {
-                case ENEMY_STATE_MOVING:
-                    {
-                        int vitesse = 0;
-                        switch(e->type) {
-                            case 0: vitesse = ENEMY_SPEED_TYPE0; break;
-                            case 1: vitesse = ENEMY_SPEED_TYPE1; break;
-                            case 2: vitesse = ENEMY_SPEED_TYPE2; break;
-                            default: vitesse = 1;
-                        }
-                        e->x -= vitesse;
+            switch (e->type) {
+                case ENEMY_TYPE_0: vitesse_x_propre = ENEMY_SPEED_TYPE0; break;
+                case ENEMY_TYPE_1: vitesse_x_propre = ENEMY_SPEED_TYPE1; break;
+                case ENEMY_TYPE_2: vitesse_x_propre = ENEMY_SPEED_TYPE2; break;
+
+                case ENEMY_TYPE_3:
+                    vitesse_x_propre = -SCROLL_SPEED + ENEMY_SPEED_X_TYPE3_WORLD;
+                    e->y += e->direction_y * e->speed_y;
+                    if (e->y < 0) {
+                        e->y = 0;
+                        e->direction_y = 1;
+                    } else if (e->y + e->h > gameState->screen_height_allegro) {
+                        e->y = gameState->screen_height_allegro - e->h;
+                        e->direction_y = -1;
                     }
                     break;
+                case ENEMY_TYPE_4:
+                    vitesse_x_propre = -SCROLL_SPEED;
+                    break;
+                case ENEMY_TYPE_5:
+                    vitesse_x_propre = ENEMY_SPEED_X_TYPE5;
+                    break;
+                case ENEMY_TYPE_6:
+                    vitesse_x_propre = ENEMY_SPEED_X_TYPE6;
+                    break;
+                default: vitesse_x_propre = 1;
+            }
+            e->x -= vitesse_x_propre;
 
+            switch (e->state) {
+                case ENEMY_STATE_MOVING:
+                    e->fire_timer--;
+                    if (e->fire_timer <= 0) {
+                        e->fire_timer = e->fire_interval;
+
+                        if (e->fire_interval < (TARGET_FPS * 900)) { // Ne pas tirer si intervalle "infini" (Type 5)
+                            // Sélectionner le sprite et les dégâts du projectile en fonction du type d'ennemi
+                            BITMAP* projectile_sprite_to_use = gameState->sprite_projectile_ennemi1; // Sprite par défaut
+                            int projectile_damage = PROJECTILE_ENNEMI1_DAMAGE; // Dégâts par défaut
+                            int projectile_speed = PROJECTILE_ENNEMI_SPEED_MEDIUM; // Vitesse par défaut
+
+                            if (e->type == ENEMY_TYPE_3) { // Ennemi orange
+                                projectile_sprite_to_use = gameState->sprite_projectile_ennemi2;
+                                projectile_damage = PROJECTILE_ENNEMI2_DAMAGE;
+                                // La vitesse est déjà gérée par son patron de tir spécifique si besoin, ou on peut la forcer ici
+                            } else if (e->type == ENEMY_TYPE_6) { // Ennemi violet
+                                projectile_speed = PROJECTILE_ENNEMI_SPEED_VIOLET;
+                                // Utilise sprite_projectile_ennemi1 par défaut pour l'instant
+                            }
+
+
+                            // Patrons de tir
+                            switch (e->type) {
+                                case ENEMY_TYPE_0:
+                                    for (int k = 0; k < ENEMY0_WALL_PROJECTILE_COUNT; k++) {
+                                        int y_offset = (int)((k - (ENEMY0_WALL_PROJECTILE_COUNT - 1) / 2.0f) * ENEMY0_WALL_PROJECTILE_SPREAD);
+                                        spawn_projectile_ennemi(gameState, e, y_offset, PROJECTILE_ENNEMI_SPEED_SLOW, gameState->sprite_projectile_ennemi1, PROJECTILE_ENNEMI1_DAMAGE);
+                                    }
+                                    break;
+                                case ENEMY_TYPE_1:
+                                    spawn_projectile_ennemi(gameState, e, 0, PROJECTILE_ENNEMI_SPEED_FAST, gameState->sprite_projectile_ennemi1, PROJECTILE_ENNEMI1_DAMAGE);
+                                    break;
+                                case ENEMY_TYPE_2:
+                                    spawn_projectile_ennemi(gameState, e, (int)(-e->h * ENEMY2_SPREAD_FACTOR_VS_HEIGHT), PROJECTILE_ENNEMI_SPEED_MEDIUM, gameState->sprite_projectile_ennemi1, PROJECTILE_ENNEMI1_DAMAGE);
+                                    spawn_projectile_ennemi(gameState, e, (int)(e->h * ENEMY2_SPREAD_FACTOR_VS_HEIGHT), PROJECTILE_ENNEMI_SPEED_MEDIUM, gameState->sprite_projectile_ennemi1, PROJECTILE_ENNEMI1_DAMAGE);
+                                    break;
+                                case ENEMY_TYPE_3: // Orange
+                                    spawn_projectile_ennemi(gameState, e, 0, PROJECTILE_ENNEMI_SPEED_MEDIUM, gameState->sprite_projectile_ennemi2, PROJECTILE_ENNEMI2_DAMAGE);
+                                    break;
+                                case ENEMY_TYPE_4: // Immobile
+                                    spawn_projectile_ennemi(gameState, e, 0, PROJECTILE_ENNEMI_SPEED_MEDIUM, gameState->sprite_projectile_ennemi1, PROJECTILE_ENNEMI1_DAMAGE);
+                                    break;
+                                // Type 5 ne tire pas
+                                case ENEMY_TYPE_6: // Violet
+                                    spawn_projectile_ennemi(gameState, e, 0, projectile_speed, gameState->sprite_projectile_ennemi1, PROJECTILE_ENNEMI1_DAMAGE);
+                                    break;
+                            }
+                        }
+                    }
+                    break;
                 case ENEMY_STATE_HIT:
                     e->state_timer--;
                     if (e->state_timer <= 0) {
-                         // Repasser en MOVING (la vie est gérée par la collision)
                         set_enemy_state(gameState, e, ENEMY_STATE_MOVING);
                     }
                     break;
-
                 case ENEMY_STATE_DYING:
-                    // L'animation gère la désactivation
                     break;
             }
 
-            // 2. Mettre à jour l'animation
-            if (e->current_sprites && e->current_nb_frames > 0 && e->tmpimg > 0) {
-                e->cptimg++;
-                if (e->cptimg >= e->tmpimg) {
-                    e->cptimg = 0;
-                    e->imgcourante++;
-
-                    if (e->imgcourante >= e->current_nb_frames) {
-                        if (e->state == ENEMY_STATE_DYING) {
-                            e->active = 0; // Désactiver à la fin de l'anim de mort
-                            // printf("DEBUG: Ennemi %d désactivé (fin anim mort)\n", i); fflush(stdout);
-                        } else if (e->state == ENEMY_STATE_HIT) {
-                             e->imgcourante = e->current_nb_frames - 1; // Bloquer sur derniere frame si HIT
-                        } else {
-                            e->imgcourante = 0; // Boucler pour MOVING
+            if (e->type >= ENEMY_TYPE_0 && e->type <= ENEMY_TYPE_2) {
+                if (e->current_sprites && e->current_nb_frames > 0 && e->tmpimg > 0) {
+                    e->cptimg++;
+                    if (e->cptimg >= e->tmpimg) {
+                        e->cptimg = 0;
+                        e->imgcourante++;
+                        if (e->imgcourante >= e->current_nb_frames) {
+                            if (e->state == ENEMY_STATE_DYING) {
+                                e->active = 0;
+                            } else if (e->state == ENEMY_STATE_HIT) {
+                                 e->imgcourante = e->current_nb_frames - 1;
+                            } else {
+                                e->imgcourante = 0;
+                            }
                         }
                     }
                 }
-                // Mettre à jour w/h si l'ennemi est toujours actif et frame valide
-                if (e->active && e->imgcourante < e->current_nb_frames && e->current_sprites[e->imgcourante]) {
-                     e->w = e->current_sprites[e->imgcourante]->w;
-                     e->h = e->current_sprites[e->imgcourante]->h;
-                } else if (e->active && e->state != ENEMY_STATE_DYING) {
-                    // Si actif mais frame invalide (ne devrait pas arriver sauf fin anim mort)
-                     // printf("WARN: Ennemi %d frame %d invalide pour état %d\n", i, e->imgcourante, e->state); fflush(stdout);
+            } else {
+                if (e->state == ENEMY_STATE_DYING) {
+                    e->active = 0;
                 }
-            } else if (e->active && e->state != ENEMY_STATE_DYING) {
-                 // printf("WARN: Ennemi %d actif mais sprites/nb_frames/tmpimg invalides (état %d)\n", i, e->state); fflush(stdout);
-                 // e->active = 0; // Peut-être trop agressif de désactiver ici
             }
 
-
-            // 3. Vérifier sortie d'écran (côté gauche)
-            if (e->active && (e->x + e->w < gameState->scroll_x)) {
+            if (e->active && (e->x + e->w < gameState->scroll_x - e->w * 2)) {
                 e->active = 0;
-                // printf("DEBUG: Ennemi %d désactivé (hors écran gauche)\n", i); fflush(stdout);
             }
-        } // fin if (e->active)
-    } // fin for
+        }
+    }
 }
 
-
-// Dessine les ennemis depuis gameState sur le buffer de gameState
-// *** MODIFIÉ: Ajout log si actif mais non dessiné ***
 void dessiner_ennemis(GameState *gameState) {
+    // ... (code inchangé) ...
      if (!gameState || !gameState->buffer) return;
      BITMAP *dest = gameState->buffer;
-
     for (int i = 0; i < MAX_ENNEMIS; i++) {
         Ennemi *e = &gameState->ennemis[i];
         if (e->active) {
             int screen_x = e->x - gameState->scroll_x;
             int screen_y = e->y - gameState->scroll_y;
-            int dessine = 0; // Flag pour savoir si on a dessiné
 
             if (screen_x + e->w > 0 && screen_x < gameState->screen_width_allegro &&
-                screen_y + e->h > 0 && screen_y < gameState->screen_height_allegro)
-            {
-                if (e->current_sprites &&
-                    e->imgcourante >= 0 && e->imgcourante < e->current_nb_frames &&
-                    e->current_sprites[e->imgcourante])
-                {
+                screen_y + e->h > 0 && screen_y < gameState->screen_height_allegro) {
+
+                if (e->current_sprites && e->imgcourante >= 0 && e->imgcourante < e->current_nb_frames && e->current_sprites[e->imgcourante]) {
                      draw_sprite(dest, e->current_sprites[e->imgcourante], screen_x, screen_y);
-                     dessine = 1; // On a réussi à dessiner
                 } else {
-                    // Log d'erreur si sprites invalides pour un ennemi actif et visible
-                    printf("ERREUR DESSIN: Sprite invalide pour ennemi %d (état %d, frame %d/%d, pointeur sprite: %p)\n",
-                           i, e->state, e->imgcourante, e->current_nb_frames, (void*)e->current_sprites);
-                    fflush(stdout);
-                    // Dessiner un rectangle d'erreur pour le voir
-                    rectfill(dest, screen_x, screen_y, screen_x + 10, screen_y + 10, makecol(255, 0, 0)); // Rouge
-                    dessine = 1; // On a dessiné (le rectangle d'erreur)
+                    int color = makecol(200, 200, 200);
+                    switch(e->type) {
+                        case ENEMY_TYPE_3: color = makecol(255, 165, 0); break;
+                        case ENEMY_TYPE_4: color = makecol(128, 128, 128); break;
+                        case ENEMY_TYPE_5: color = makecol(100, 149, 237); break;
+                        case ENEMY_TYPE_6: color = makecol(148, 0, 211); break;
+                        default: if (e->type >= ENEMY_TYPE_0 && e->type <= ENEMY_TYPE_2) color = makecol(255,0,0);
+                    }
+                    rectfill(dest, screen_x, screen_y, screen_x + e->w -1 , screen_y + e->h -1, color);
                 }
             }
-
-            // *** Log si l'ennemi est actif mais n'a pas été dessiné (car hors écran ou erreur sprite) ***
-            // if (!dessine) {
-            //    printf("DEBUG: Ennemi %d actif mais non dessiné (screen_x=%d, visible=%d, sprites_ok=%d)\n",
-            //           i, screen_x, (screen_x + e->w > 0 && screen_x < gameState->screen_width_allegro),
-            //           (e->current_sprites && e->imgcourante >= 0 && e->imgcourante < e->current_nb_frames && e->current_sprites[e->imgcourante] != NULL));
-            //    fflush(stdout);
-            // }
-
-        } // fin if (e->active)
-    } // fin for
+        }
+    }
 }
 
-// Nettoie les ressources spécifiques aux ennemis (sprites modèles dans gameState)
-// (Fonction inchangée par rapport à la correction précédente)
 void nettoyer_ressources_ennemis(GameState *gameState) {
+    // ... (code inchangé) ...
     if (!gameState) return;
     printf("Nettoyage ressources ennemis...\n"); fflush(stdout);
-
     void destroy_bitmap_array(BITMAP* arr[], int size) {
         if (!arr) return;
         for (int i = 0; i < size; i++) {
@@ -334,19 +372,15 @@ void nettoyer_ressources_ennemis(GameState *gameState) {
             }
         }
     }
-
-    // Type 0
     destroy_bitmap_array(gameState->sprites_enemy0_move, ENEMY_NBFRAMES_MOVE);
     destroy_bitmap_array(gameState->sprites_enemy0_hit, ENEMY_NBFRAMES_HIT);
     destroy_bitmap_array(gameState->sprites_enemy0_death, ENEMY_NBFRAMES_DEATH);
-    // Type 1
     destroy_bitmap_array(gameState->sprites_enemy1_move, ENEMY_NBFRAMES_MOVE);
     destroy_bitmap_array(gameState->sprites_enemy1_hit, ENEMY_NBFRAMES_HIT);
     destroy_bitmap_array(gameState->sprites_enemy1_death, ENEMY_NBFRAMES_DEATH);
-    // Type 2
     destroy_bitmap_array(gameState->sprites_enemy2_move, ENEMY_NBFRAMES_MOVE);
     destroy_bitmap_array(gameState->sprites_enemy2_hit, ENEMY_NBFRAMES_HIT);
     destroy_bitmap_array(gameState->sprites_enemy2_death, ENEMY_NBFRAMES_DEATH);
-
-    printf("Sprites modèles ennemis détruits.\n"); fflush(stdout);
+    printf("Sprites modèles ennemis (types 0-2) détruits.\n"); fflush(stdout);
 }
+

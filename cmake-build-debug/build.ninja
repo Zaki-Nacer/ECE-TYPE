@@ -97,6 +97,24 @@ build CMakeFiles/untitled4.dir/savegame.c.obj: C_COMPILER__untitled4_unscanned_D
   OBJECT_DIR = CMakeFiles\untitled4.dir
   OBJECT_FILE_DIR = CMakeFiles\untitled4.dir
 
+build CMakeFiles/untitled4.dir/projectile_ennemi.c.obj: C_COMPILER__untitled4_unscanned_Debug C$:/Users/achou/CLionProjects/untitled4/projectile_ennemi.c || cmake_object_order_depends_target_untitled4
+  DEP_FILE = CMakeFiles\untitled4.dir\projectile_ennemi.c.obj.d
+  FLAGS = -g -fdiagnostics-color=always
+  OBJECT_DIR = CMakeFiles\untitled4.dir
+  OBJECT_FILE_DIR = CMakeFiles\untitled4.dir
+
+build CMakeFiles/untitled4.dir/menu.c.obj: C_COMPILER__untitled4_unscanned_Debug C$:/Users/achou/CLionProjects/untitled4/menu.c || cmake_object_order_depends_target_untitled4
+  DEP_FILE = CMakeFiles\untitled4.dir\menu.c.obj.d
+  FLAGS = -g -fdiagnostics-color=always
+  OBJECT_DIR = CMakeFiles\untitled4.dir
+  OBJECT_FILE_DIR = CMakeFiles\untitled4.dir
+
+build CMakeFiles/untitled4.dir/item.c.obj: C_COMPILER__untitled4_unscanned_Debug C$:/Users/achou/CLionProjects/untitled4/item.c || cmake_object_order_depends_target_untitled4
+  DEP_FILE = CMakeFiles\untitled4.dir\item.c.obj.d
+  FLAGS = -g -fdiagnostics-color=always
+  OBJECT_DIR = CMakeFiles\untitled4.dir
+  OBJECT_FILE_DIR = CMakeFiles\untitled4.dir
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target untitled4
@@ -105,7 +123,7 @@ build CMakeFiles/untitled4.dir/savegame.c.obj: C_COMPILER__untitled4_unscanned_D
 #############################################
 # Link the executable untitled4.exe
 
-build untitled4.exe: C_EXECUTABLE_LINKER__untitled4_Debug CMakeFiles/untitled4.dir/main.c.obj CMakeFiles/untitled4.dir/graphics.c.obj CMakeFiles/untitled4.dir/player.c.obj CMakeFiles/untitled4.dir/enemy.c.obj CMakeFiles/untitled4.dir/projectile.c.obj CMakeFiles/untitled4.dir/hud.c.obj CMakeFiles/untitled4.dir/effect.c.obj CMakeFiles/untitled4.dir/savegame.c.obj
+build untitled4.exe: C_EXECUTABLE_LINKER__untitled4_Debug CMakeFiles/untitled4.dir/main.c.obj CMakeFiles/untitled4.dir/graphics.c.obj CMakeFiles/untitled4.dir/player.c.obj CMakeFiles/untitled4.dir/enemy.c.obj CMakeFiles/untitled4.dir/projectile.c.obj CMakeFiles/untitled4.dir/hud.c.obj CMakeFiles/untitled4.dir/effect.c.obj CMakeFiles/untitled4.dir/savegame.c.obj CMakeFiles/untitled4.dir/projectile_ennemi.c.obj CMakeFiles/untitled4.dir/menu.c.obj CMakeFiles/untitled4.dir/item.c.obj
   FLAGS = -g
   LINK_LIBRARIES = -lmingw32  -lalleg44  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\untitled4.dir

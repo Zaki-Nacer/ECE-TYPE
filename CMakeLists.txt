@@ -19,5 +19,11 @@ add_executable(untitled4 main.c
         effect.c
         savegame.h
         savegame.c
+        projectile_ennemi.c
+        projectile_ennemi.h
+        menu.c
+        menu.h
+        item.c
+        item.h
 )
 target_link_libraries(untitled4 -lmingw32 -lalleg44)
