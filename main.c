@@ -7,7 +7,7 @@
 #include "hud.h"
 #include "effect.h"
 #include "menu.h"
-#include "item.h" // NOUVEAU: Inclure la gestion des items
+#include "item.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,7 +18,7 @@
 // --- Forward Declarations ---
 void cleanup_game_resources(GameState *gameState);
 int check_collision(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2);
-void gerer_collisions(GameState *gameState); // Sera modifié pour inclure les items
+void gerer_collisions(GameState *gameState);
 void gerer_collision_joueur_decor_obstacle(GameState *gameState);
 void load_level_data(GameState *gameState, int level_number);
 
@@ -29,8 +29,8 @@ void cleanup_game_resources(GameState *gameState) {
     if (!gameState) return;
 
     nettoyer_ressources_projectiles_joueur(gameState);
-    nettoyer_ressources_projectiles_ennemi(gameState);
-    nettoyer_ressources_items(gameState); // NOUVEAU
+    nettoyer_ressources_projectiles_ennemis(gameState);
+    nettoyer_ressources_items(gameState);
     nettoyer_ressources_effects(gameState);
     nettoyer_ressources_ennemis(gameState);
     nettoyer_ressources_joueur(gameState);
@@ -47,12 +47,11 @@ int check_collision(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int 
     return 1;
 }
 
-// MODIFIÉ: Ajout de la collision Joueur vs Items et effet Screen Clear
 void gerer_collisions(GameState *gameState) {
     if (!gameState) return;
     Vaisseau *player = &gameState->joueur;
 
-    // 1. Projectiles Joueur vs Ennemis (inchangé)
+    // 1. Projectiles Joueur vs Ennemis
     for (int i = 0; i < MAX_PROJECTILES_JOUEUR; i++) {
         Projectile *p = &gameState->projectiles_joueur[i];
         if (!p->active || p->state != PROJECTILE_STATE_FLYING) continue;
@@ -70,17 +69,17 @@ void gerer_collisions(GameState *gameState) {
                 p->impact_timer = 0;
                 e->health -= 1;
                 if (e->health <= 0) {
-                    set_enemy_state(gameState, e, ENEMY_STATE_DYING); // set_enemy_state gère le drop d'item pour Type 5
+                    set_enemy_state(gameState, e, ENEMY_STATE_DYING);
                 } else {
                     set_enemy_state(gameState, e, ENEMY_STATE_HIT);
                 }
-                goto next_projectile_collision_check_joueur; // Renommé pour éviter confusion
+                goto next_projectile_collision_check_joueur_vs_ennemi_main;
             }
         }
-        next_projectile_collision_check_joueur:;
+        next_projectile_collision_check_joueur_vs_ennemi_main:;
     }
 
-    // 2. Joueur vs Ennemis (collision directe) (inchangé)
+    // 2. Joueur vs Ennemis (collision directe)
     if (player->active && player->state != STATE_DYING && player->state != STATE_HIT && player->state_timer <= 0) {
         for (int j = 0; j < MAX_ENNEMIS; j++) {
             Ennemi *e = &gameState->ennemis[j];
@@ -90,16 +89,16 @@ void gerer_collisions(GameState *gameState) {
             if (check_collision(player->x, player->y, player->w, player->h, ennemi_screen_x, ennemi_screen_y, e->w, e->h)) {
                 damage_player(gameState, 1);
                 if (e->state != ENEMY_STATE_DYING) {
-                    e->health = 0; // L'ennemi est aussi détruit au contact
-                    set_enemy_state(gameState, e, ENEMY_STATE_DYING); // Gère le drop d'item pour Type 5
+                    e->health = 0;
+                    set_enemy_state(gameState, e, ENEMY_STATE_DYING);
                 }
                 if (player->state == STATE_HIT || player->state == STATE_DYING) break;
             }
         }
     }
 
-    // 3. Joueur vs Projectiles Ennemis (inchangé)
-    if (player->active && player->state != STATE_DYING && player->state_timer <= 0) {
+    // 3. Joueur vs Projectiles Ennemis
+    if (player->active && player->state != STATE_DYING && player->state_timer <= 0 ) {
         for (int k = 0; k < MAX_PROJECTILES_ENNEMI; k++) {
             ProjectileEnnemi *pe = &gameState->projectiles_ennemi[k];
             if (!pe->active) continue;
@@ -111,8 +110,8 @@ void gerer_collisions(GameState *gameState) {
         }
     }
 
-    // 4. Joueur vs Items (NOUVEAU)
-    if (player->active) { // Le joueur doit être actif pour collecter des items
+    // 4. Joueur vs Items
+    if (player->active) {
         for (int i = 0; i < MAX_ITEMS; i++) {
             Item *item = &gameState->items[i];
             if (item->active) {
@@ -120,42 +119,32 @@ void gerer_collisions(GameState *gameState) {
                 int item_screen_y = item->y_world - gameState->scroll_y;
 
                 if (check_collision(player->x, player->y, player->w, player->h, item_screen_x, item_screen_y, item->w, item->h)) {
-                    // Collision joueur-item détectée
                     printf("Joueur a collecté l'item de type: %d\n", item->type); fflush(stdout);
 
                     if (item->type == ITEM_TYPE_SCREEN_CLEAR) {
                         printf("Effet SCREEN CLEAR activé!\n"); fflush(stdout);
-                        // Détruire tous les ennemis à l'écran
                         for (int j = 0; j < MAX_ENNEMIS; j++) {
                             if (gameState->ennemis[j].active) {
-                                // gameState->ennemis[j].active = 0; // Option simple
-                                gameState->ennemis[j].health = 0; // Pour déclencher leur état DYING et potentiels drops
+                                gameState->ennemis[j].health = 0;
                                 set_enemy_state(gameState, &gameState->ennemis[j], ENEMY_STATE_DYING);
                             }
                         }
-                        // Détruire tous les projectiles ennemis à l'écran
                         for (int k = 0; k < MAX_PROJECTILES_ENNEMI; k++) {
                             if (gameState->projectiles_ennemi[k].active) {
                                 gameState->projectiles_ennemi[k].active = 0;
                             }
                         }
-                        // Optionnel: Détruire aussi les projectiles du joueur
-                        /*
-                        for (int k = 0; k < MAX_PROJECTILES_JOUEUR; k++) {
-                            if (gameState->projectiles_joueur[k].active && gameState->projectiles_joueur[k].state == PROJECTILE_STATE_FLYING) {
-                                // gameState->projectiles_joueur[k].active = 0;
-                                // Ou les faire exploser
-                                gameState->projectiles_joueur[k].state = PROJECTILE_STATE_IMPACTING;
-                                gameState->projectiles_joueur[k].impact_frame = 0;
-                                gameState->projectiles_joueur[k].impact_timer = 0;
-                            }
+                    } else if (item->type == ITEM_TYPE_HEALTH_PACK) { // NOUVEAU
+                        printf("Pack de Santé collecté !\n"); fflush(stdout);
+                        if (gameState->joueur.health < PLAYER_INITIAL_HP) {
+                            gameState->joueur.health++;
+                            printf("PV du joueur augmentés à %d\n", gameState->joueur.health); fflush(stdout);
+                        } else {
+                            printf("PV du joueur déjà au max.\n"); fflush(stdout);
+                            // Optionnel: donner des points de score si PV max
                         }
-                        */
                     }
-                    // Autres types d'items pourraient être gérés ici avec un switch(item->type)
-
-                    item->active = 0; // Désactiver l'item collecté
-                    // Pas besoin de 'break' ici, le joueur pourrait théoriquement collecter plusieurs items en une frame
+                    item->active = 0;
                 }
             }
         }
@@ -164,13 +153,13 @@ void gerer_collisions(GameState *gameState) {
 
 
 void gerer_collision_joueur_decor_obstacle(GameState *gameState) {
-    // ... (code inchangé, toujours commenté dans main si non désiré) ...
     if (!gameState || !gameState->joueur.active || !gameState->decor_obstacles) return;
     Vaisseau *player = &gameState->joueur;
 
     if (player->state == STATE_HIT || player->state == STATE_DYING || player->state_timer > 0) {
         return;
     }
+    // La logique du bouclier pour le décor a été supprimée car le bouclier a été retiré
 
     typedef struct { int x; int y; } Point;
     Point points_a_tester[] = {
@@ -206,6 +195,7 @@ void gerer_collision_joueur_decor_obstacle(GameState *gameState) {
 
 
 void load_level_data(GameState *gameState, int level_number) {
+    // ... (code inchangé) ...
     if (!gameState) return;
     printf("Chargement des données du Niveau %d pour %s...\n", level_number, gameState->player_name);
     fflush(stdout);
@@ -255,7 +245,7 @@ void load_level_data(GameState *gameState, int level_number) {
     initialiser_projectiles_joueur(gameState);
     initialiser_projectiles_ennemi(gameState);
     initialiser_effects(gameState);
-    initialiser_items(gameState); // NOUVEAU: Initialiser les items
+    initialiser_items(gameState);
 
     gameState->can_shoot = 1;
     gameState->shoot_timer = 0;
@@ -267,6 +257,7 @@ void load_level_data(GameState *gameState, int level_number) {
 
 // --- Point d'Entrée Principal ---
 int main() {
+    // ... (code inchangé jusqu'à la boucle de jeu) ...
     GameState gameState;
     memset(&gameState, 0, sizeof(GameState));
     gameState.return_to_map_select = 0;
@@ -283,8 +274,8 @@ int main() {
     load_player_animations(&gameState);
     charger_sprites_ennemis(&gameState);
     charger_et_redimensionner_sprite_projectile_joueur(&gameState);
-    charger_sprite_projectile_ennemi(&gameState);
-    charger_sprites_items(&gameState); // NOUVEAU: Charger les sprites des items (même si vide pour l'instant)
+    charger_sprites_projectiles_ennemis(&gameState);
+    charger_sprites_items(&gameState);
     charger_sprites_effects(&gameState);
     charger_ressources_hud(&gameState);
 
@@ -344,7 +335,7 @@ int main() {
                 mettre_a_jour_ennemis(&gameState);
                 mettre_a_jour_projectiles_joueur(&gameState);
                 mettre_a_jour_projectiles_ennemi(&gameState);
-                mettre_a_jour_items(&gameState); // NOUVEAU: Mettre à jour les items
+                mettre_a_jour_items(&gameState);
                 mettre_a_jour_effects(&gameState);
                 mettre_a_jour_hud(&gameState);
 
@@ -390,7 +381,7 @@ int main() {
 
                 // gerer_collision_joueur_decor_obstacle(&gameState); // APPEL COMMENTÉ
                 if (gameState.joueur.active) {
-                    gerer_collisions(&gameState); // Gère maintenant aussi Joueur vs Items
+                    gerer_collisions(&gameState);
                 }
 
                 if (gameState.joueur.active && gameState.game_loop_counter >= LEVEL_DURATION_FRAMES) {
@@ -498,7 +489,7 @@ int main() {
 
             dessiner_decor_layer(&gameState, gameState.decor_visuel);
 
-            dessiner_items(&gameState); // NOUVEAU: Dessiner les items
+            dessiner_items(&gameState);
             dessiner_ennemis(&gameState);
             dessiner_projectiles_joueur(&gameState);
             dessiner_projectiles_ennemi(&gameState);

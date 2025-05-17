@@ -2,7 +2,7 @@
 #include "defs.h"
 #include "graphics.h"
 #include "projectile_ennemi.h"
-#include "item.h" // NOUVEAU: Inclure pour pouvoir spawner des items
+#include "item.h"
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -10,6 +10,7 @@
 // --- Implémentation des Fonctions ---
 
 void load_process_enemy_anim(GameState *gameState, BITMAP *dest_array[], int nb_frames, const char *base_filename_pattern) {
+    // ... (code inchangé) ...
     if (!gameState) { printf("ERREUR: gameState NULL dans load_process_enemy_anim\n"); fflush(stdout); return; }
     char filename[100];
     BITMAP *original_bmp = NULL;
@@ -33,6 +34,7 @@ void load_process_enemy_anim(GameState *gameState, BITMAP *dest_array[], int nb_
 }
 
 void charger_sprites_ennemis(GameState *gameState) {
+    // ... (code inchangé) ...
     if (!gameState) { printf("ERREUR: gameState NULL dans charger_sprites_ennemis\n"); fflush(stdout); return; }
     printf("--- Chargement Sprites Ennemis (Types 0-2 pour Niveaux 1 & 3) ---\n"); fflush(stdout);
     load_process_enemy_anim(gameState, gameState->sprites_enemy0_move, ENEMY_NBFRAMES_MOVE, "skeleton0-Moving_ (%d).bmp");
@@ -48,6 +50,7 @@ void charger_sprites_ennemis(GameState *gameState) {
 }
 
 void initialiser_ennemis_array(GameState *gameState) {
+    // ... (code inchangé) ...
     if (!gameState) return;
     for (int i = 0; i < MAX_ENNEMIS; i++) {
         gameState->ennemis[i].active = 0;
@@ -56,13 +59,12 @@ void initialiser_ennemis_array(GameState *gameState) {
 }
 
 void set_enemy_state(GameState *gameState, Ennemi *e, EnemyState new_state) {
+    // ... (code de gestion des états et sprites inchangé, mais le drop d'item est déjà là) ...
     if (!gameState || !e) return;
-    // Ne pas changer l'état d'un ennemi inactif sauf à l'initialisation (state == -1)
     if (!e->active && new_state != ENEMY_STATE_MOVING && e->state != -1) return;
-    // Éviter changement inutile sauf si on passe à HIT (pour réinitialiser l'anim HIT)
     if (e->state == new_state && new_state != ENEMY_STATE_HIT) return;
 
-    EnemyState old_state = e->state; // Garder l'ancien état pour la logique de drop d'item
+    EnemyState old_state = e->state;
     e->state = new_state;
     e->imgcourante = 0;
     e->cptimg = 0;
@@ -70,7 +72,7 @@ void set_enemy_state(GameState *gameState, Ennemi *e, EnemyState new_state) {
     e->current_nb_frames = 0;
     e->tmpimg = ENEMY_ANIM_SPEED_MOVE;
 
-    if (e->type >= ENEMY_TYPE_0 && e->type <= ENEMY_TYPE_2) { // Sprites pour les types 0, 1, 2
+    if (e->type >= ENEMY_TYPE_0 && e->type <= ENEMY_TYPE_2) {
         switch (e->type) {
             case ENEMY_TYPE_0:
                 switch (new_state) {
@@ -98,27 +100,30 @@ void set_enemy_state(GameState *gameState, Ennemi *e, EnemyState new_state) {
             e->w = e->current_sprites[0]->w;
             e->h = e->current_sprites[0]->h;
         } else if (new_state != ENEMY_STATE_DYING) {
-             if (e->w <=0) e->w = 30; // Utiliser les tailles de spawn_ennemi si pas de sprite
+             if (e->w <=0) e->w = 30;
              if (e->h <=0) e->h = 30;
         }
-    } else { // Pour les nouveaux types (3-6), pas de sprites pour l'instant
+    } else {
         if (e->w <=0) e->w = 30;
         if (e->h <=0) e->h = 30;
         if (new_state == ENEMY_STATE_HIT) e->state_timer = ENEMY_HIT_DURATION;
     }
 
-    // --- MODIFICATION: Faire tomber un item si ENEMY_TYPE_5 passe à DYING ---
-    if (new_state == ENEMY_STATE_DYING && old_state != ENEMY_STATE_DYING) { // S'assurer que c'est la première fois qu'on passe à DYING
+    if (new_state == ENEMY_STATE_DYING && old_state != ENEMY_STATE_DYING) {
         if (e->type == ENEMY_TYPE_5) {
-            printf("Ennemi Type 5 (bleu) détruit, tentative de drop d'item Screen Clear.\n"); fflush(stdout);
-            // L'item apparaît au centre de l'ennemi
-            spawn_item(gameState, ITEM_TYPE_SCREEN_CLEAR, e->x + e->w / 2, e->y + e->h / 2);
+            if (rand() % 3 == 0) {
+                printf("Ennemi Type 5 (bleu) détruit, drop ITEM_SCREEN_CLEAR.\n"); fflush(stdout);
+                spawn_item(gameState, ITEM_TYPE_SCREEN_CLEAR, e->x + e->w / 2, e->y + e->h / 2);
+            }
+        } else if (e->type == ENEMY_TYPE_6) {
+             printf("Ennemi Type 6 (violet) détruit, drop ITEM_HEALTH_PACK.\n"); fflush(stdout);
+             spawn_item(gameState, ITEM_TYPE_HEALTH_PACK, e->x + e->w / 2, e->y + e->h / 2);
         }
     }
-    // --- FIN MODIFICATION ---
 }
 
 void spawn_ennemi(GameState *gameState, int type, int pos_x_monde, int pos_y_monde) {
+    // ... (code inchangé) ...
     if (!gameState) return;
 
     if (type == ENEMY_TYPE_4) {
@@ -150,7 +155,6 @@ void spawn_ennemi(GameState *gameState, int type, int pos_x_monde, int pos_y_mon
         e->state = -1;
         e->current_sprites = NULL;
         e->current_nb_frames = 0;
-        // Les tailles par défaut sont définies ci-dessous par type, set_enemy_state les utilisera si pas de sprites
         e->w = 30; e->h = 30;
 
         switch (type) {
@@ -239,29 +243,46 @@ void mettre_a_jour_ennemis(GameState *gameState) {
                     if (e->fire_timer <= 0) {
                         e->fire_timer = e->fire_interval;
 
-                        if (e->fire_interval < (TARGET_FPS * 900)) {
+                        if (e->fire_interval < (TARGET_FPS * 900)) { // Ne pas tirer si intervalle "infini" (Type 5)
+                            // Sélectionner le sprite et les dégâts du projectile en fonction du type d'ennemi
+                            BITMAP* projectile_sprite_to_use = gameState->sprite_projectile_ennemi1; // Sprite par défaut
+                            int projectile_damage = PROJECTILE_ENNEMI1_DAMAGE; // Dégâts par défaut
+                            int projectile_speed = PROJECTILE_ENNEMI_SPEED_MEDIUM; // Vitesse par défaut
+
+                            if (e->type == ENEMY_TYPE_3) { // Ennemi orange
+                                projectile_sprite_to_use = gameState->sprite_projectile_ennemi2;
+                                projectile_damage = PROJECTILE_ENNEMI2_DAMAGE;
+                                // La vitesse est déjà gérée par son patron de tir spécifique si besoin, ou on peut la forcer ici
+                            } else if (e->type == ENEMY_TYPE_6) { // Ennemi violet
+                                projectile_speed = PROJECTILE_ENNEMI_SPEED_VIOLET;
+                                // Utilise sprite_projectile_ennemi1 par défaut pour l'instant
+                            }
+
+
+                            // Patrons de tir
                             switch (e->type) {
                                 case ENEMY_TYPE_0:
                                     for (int k = 0; k < ENEMY0_WALL_PROJECTILE_COUNT; k++) {
                                         int y_offset = (int)((k - (ENEMY0_WALL_PROJECTILE_COUNT - 1) / 2.0f) * ENEMY0_WALL_PROJECTILE_SPREAD);
-                                        spawn_projectile_ennemi(gameState, e, y_offset, PROJECTILE_ENNEMI_SPEED_SLOW);
+                                        spawn_projectile_ennemi(gameState, e, y_offset, PROJECTILE_ENNEMI_SPEED_SLOW, gameState->sprite_projectile_ennemi1, PROJECTILE_ENNEMI1_DAMAGE);
                                     }
                                     break;
                                 case ENEMY_TYPE_1:
-                                    spawn_projectile_ennemi(gameState, e, 0, PROJECTILE_ENNEMI_SPEED_FAST);
+                                    spawn_projectile_ennemi(gameState, e, 0, PROJECTILE_ENNEMI_SPEED_FAST, gameState->sprite_projectile_ennemi1, PROJECTILE_ENNEMI1_DAMAGE);
                                     break;
                                 case ENEMY_TYPE_2:
-                                    spawn_projectile_ennemi(gameState, e, (int)(-e->h * ENEMY2_SPREAD_FACTOR_VS_HEIGHT), PROJECTILE_ENNEMI_SPEED_MEDIUM);
-                                    spawn_projectile_ennemi(gameState, e, (int)(e->h * ENEMY2_SPREAD_FACTOR_VS_HEIGHT), PROJECTILE_ENNEMI_SPEED_MEDIUM);
+                                    spawn_projectile_ennemi(gameState, e, (int)(-e->h * ENEMY2_SPREAD_FACTOR_VS_HEIGHT), PROJECTILE_ENNEMI_SPEED_MEDIUM, gameState->sprite_projectile_ennemi1, PROJECTILE_ENNEMI1_DAMAGE);
+                                    spawn_projectile_ennemi(gameState, e, (int)(e->h * ENEMY2_SPREAD_FACTOR_VS_HEIGHT), PROJECTILE_ENNEMI_SPEED_MEDIUM, gameState->sprite_projectile_ennemi1, PROJECTILE_ENNEMI1_DAMAGE);
                                     break;
-                                case ENEMY_TYPE_3:
-                                    spawn_projectile_ennemi(gameState, e, 0, PROJECTILE_ENNEMI_SPEED_MEDIUM);
+                                case ENEMY_TYPE_3: // Orange
+                                    spawn_projectile_ennemi(gameState, e, 0, PROJECTILE_ENNEMI_SPEED_MEDIUM, gameState->sprite_projectile_ennemi2, PROJECTILE_ENNEMI2_DAMAGE);
                                     break;
-                                case ENEMY_TYPE_4:
-                                    spawn_projectile_ennemi(gameState, e, 0, PROJECTILE_ENNEMI_SPEED_MEDIUM);
+                                case ENEMY_TYPE_4: // Immobile
+                                    spawn_projectile_ennemi(gameState, e, 0, PROJECTILE_ENNEMI_SPEED_MEDIUM, gameState->sprite_projectile_ennemi1, PROJECTILE_ENNEMI1_DAMAGE);
                                     break;
-                                case ENEMY_TYPE_6:
-                                    spawn_projectile_ennemi(gameState, e, 0, PROJECTILE_ENNEMI_SPEED_MEDIUM);
+                                // Type 5 ne tire pas
+                                case ENEMY_TYPE_6: // Violet
+                                    spawn_projectile_ennemi(gameState, e, 0, projectile_speed, gameState->sprite_projectile_ennemi1, PROJECTILE_ENNEMI1_DAMAGE);
                                     break;
                             }
                         }
@@ -274,12 +295,9 @@ void mettre_a_jour_ennemis(GameState *gameState) {
                     }
                     break;
                 case ENEMY_STATE_DYING:
-                    // La désactivation se fait plus bas si pas d'animation
-                    // ou après l'animation pour les types 0-2
                     break;
             }
 
-            // Mettre à jour l'animation (uniquement pour les types avec sprites)
             if (e->type >= ENEMY_TYPE_0 && e->type <= ENEMY_TYPE_2) {
                 if (e->current_sprites && e->current_nb_frames > 0 && e->tmpimg > 0) {
                     e->cptimg++;
@@ -299,9 +317,6 @@ void mettre_a_jour_ennemis(GameState *gameState) {
                 }
             } else {
                 if (e->state == ENEMY_STATE_DYING) {
-                    // Pour les types 3-6 sans animation de mort,
-                    // le drop d'item est géré dans set_enemy_state.
-                    // La désactivation effective de l'ennemi se fait ici.
                     e->active = 0;
                 }
             }
@@ -314,6 +329,7 @@ void mettre_a_jour_ennemis(GameState *gameState) {
 }
 
 void dessiner_ennemis(GameState *gameState) {
+    // ... (code inchangé) ...
      if (!gameState || !gameState->buffer) return;
      BITMAP *dest = gameState->buffer;
     for (int i = 0; i < MAX_ENNEMIS; i++) {
@@ -332,7 +348,7 @@ void dessiner_ennemis(GameState *gameState) {
                     switch(e->type) {
                         case ENEMY_TYPE_3: color = makecol(255, 165, 0); break;
                         case ENEMY_TYPE_4: color = makecol(128, 128, 128); break;
-                        case ENEMY_TYPE_5: color = makecol(100, 149, 237); break; // Bleu pour l'ennemi qui drop l'item
+                        case ENEMY_TYPE_5: color = makecol(100, 149, 237); break;
                         case ENEMY_TYPE_6: color = makecol(148, 0, 211); break;
                         default: if (e->type >= ENEMY_TYPE_0 && e->type <= ENEMY_TYPE_2) color = makecol(255,0,0);
                     }
@@ -344,6 +360,7 @@ void dessiner_ennemis(GameState *gameState) {
 }
 
 void nettoyer_ressources_ennemis(GameState *gameState) {
+    // ... (code inchangé) ...
     if (!gameState) return;
     printf("Nettoyage ressources ennemis...\n"); fflush(stdout);
     void destroy_bitmap_array(BITMAP* arr[], int size) {

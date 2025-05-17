@@ -1,48 +1,82 @@
 #include "projectile_ennemi.h"
 #include "defs.h"
-#include "graphics.h" // Pour charger_bitmap_safe, make_white_transparent
+#include "graphics.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h> // Pour roundf si redimensionnement
+#include <math.h>
 
 // --- Implémentation des Fonctions ---
 
-void charger_sprite_projectile_ennemi(GameState *gameState) {
+// Nom de fonction modifié pour charger LES sprites des projectiles ennemis
+void charger_sprites_projectiles_ennemis(GameState *gameState) {
     if (!gameState) {
-        printf("ERREUR: gameState NULL dans charger_sprite_projectile_ennemi\n"); fflush(stdout);
+        printf("ERREUR: gameState NULL dans charger_sprites_projectiles_ennemis\n"); fflush(stdout);
         return;
     }
 
-    printf("Chargement sprite projectile ennemi...\n"); fflush(stdout);
-    // Utilise actuellement "tir_joueur.bmp" comme placeholder.
-    // Changez "tir_ennemi.bmp" (ou autre) si vous avez un sprite spécifique.
-    // Pour l'instant, tous les tirs ennemis utilisent ce même sprite.
-    BITMAP *original_bmp = charger_bitmap_safe("tir_joueur.bmp");
+    printf("Chargement des sprites des projectiles ennemis...\n"); fflush(stdout);
 
-    int new_w = (int)roundf(original_bmp->w * PROJECTILE_ENNEMI_SCALE_FACTOR);
-    int new_h = (int)roundf(original_bmp->h * PROJECTILE_ENNEMI_SCALE_FACTOR);
-    if (new_w <= 0) new_w = 1;
-    if (new_h <= 0) new_h = 1;
+    BITMAP *original_bmp1 = NULL;
+    BITMAP *resized_bmp1 = NULL;
+    BITMAP *original_bmp2 = NULL;
+    BITMAP *resized_bmp2 = NULL;
 
-    BITMAP *resized_bmp = create_bitmap(new_w, new_h);
-    if (!resized_bmp) {
-        allegro_message("Erreur creation bitmap redimensionné pour projectile ennemi!");
-        allegro_exit();
-        exit(EXIT_FAILURE);
+    // Charger tire_ennemie1.bmp
+    original_bmp1 = charger_bitmap_safe("tire_ennemie1.bmp"); // Assurez-vous que ce fichier existe
+    if (original_bmp1) {
+        int new_w1 = (int)roundf(original_bmp1->w * PROJECTILE_ENNEMI_SCALE_FACTOR);
+        int new_h1 = (int)roundf(original_bmp1->h * PROJECTILE_ENNEMI_SCALE_FACTOR);
+        if (new_w1 <= 0) new_w1 = 1;
+        if (new_h1 <= 0) new_h1 = 1;
+
+        resized_bmp1 = create_bitmap(new_w1, new_h1);
+        if (!resized_bmp1) {
+            allegro_message("Erreur creation bitmap redimensionné pour tire_ennemie1!");
+            if(original_bmp1) destroy_bitmap(original_bmp1);
+            allegro_exit();
+            exit(EXIT_FAILURE);
+        }
+        stretch_blit(original_bmp1, resized_bmp1, 0, 0, original_bmp1->w, original_bmp1->h, 0, 0, new_w1, new_h1);
+        destroy_bitmap(original_bmp1);
+        make_white_transparent(gameState, resized_bmp1);
+        gameState->sprite_projectile_ennemi1 = resized_bmp1;
+        printf("Sprite tire_ennemie1.bmp chargé et traité (%dx%d).\n", new_w1, new_h1); fflush(stdout);
+    } else {
+        printf("ERREUR FATALE: Impossible de charger tire_ennemie1.bmp\n"); fflush(stdout);
+        // Vous pourriez vouloir quitter ou utiliser un placeholder ici
+        gameState->sprite_projectile_ennemi1 = NULL;
     }
 
-    stretch_blit(original_bmp, resized_bmp, 0, 0, original_bmp->w, original_bmp->h, 0, 0, new_w, new_h);
-    destroy_bitmap(original_bmp);
+    // Charger tire_ennemie2.bmp
+    original_bmp2 = charger_bitmap_safe("tire_ennemie2.bmp"); // Assurez-vous que ce fichier existe
+    if (original_bmp2) {
+        int new_w2 = (int)roundf(original_bmp2->w * PROJECTILE_ENNEMI_SCALE_FACTOR);
+        int new_h2 = (int)roundf(original_bmp2->h * PROJECTILE_ENNEMI_SCALE_FACTOR);
+        if (new_w2 <= 0) new_w2 = 1;
+        if (new_h2 <= 0) new_h2 = 1;
 
-    make_white_transparent(gameState, resized_bmp);
+        resized_bmp2 = create_bitmap(new_w2, new_h2);
+        if (!resized_bmp2) {
+            allegro_message("Erreur creation bitmap redimensionné pour tire_ennemie2!");
+            if(original_bmp2) destroy_bitmap(original_bmp2);
+            if(gameState->sprite_projectile_ennemi1) destroy_bitmap(gameState->sprite_projectile_ennemi1); // Nettoyer le précédent si échec ici
+            allegro_exit();
+            exit(EXIT_FAILURE);
+        }
+        stretch_blit(original_bmp2, resized_bmp2, 0, 0, original_bmp2->w, original_bmp2->h, 0, 0, new_w2, new_h2);
+        destroy_bitmap(original_bmp2);
+        make_white_transparent(gameState, resized_bmp2);
+        gameState->sprite_projectile_ennemi2 = resized_bmp2;
+        printf("Sprite tire_ennemie2.bmp chargé et traité (%dx%d).\n", new_w2, new_h2); fflush(stdout);
+    } else {
+        printf("ERREUR FATALE: Impossible de charger tire_ennemie2.bmp\n"); fflush(stdout);
+        gameState->sprite_projectile_ennemi2 = NULL;
+    }
 
-    gameState->sprite_projectile_ennemi = resized_bmp;
-    printf("Sprite projectile ennemi chargé, redimensionné (%dx%d) et traité.\n", new_w, new_h); fflush(stdout);
-
-     if (gameState->sprite_projectile_ennemi == NULL) {
-        printf("ERREUR FATALE: gameState->sprite_projectile_ennemi est NULL après chargement!\n"); fflush(stdout);
-        allegro_exit();
-        exit(EXIT_FAILURE);
+    // Vérification finale
+    if (!gameState->sprite_projectile_ennemi1 || !gameState->sprite_projectile_ennemi2) {
+        printf("AVERTISSEMENT: Un ou plusieurs sprites de projectiles ennemis n'ont pas pu être chargés.\n");
+        // Le jeu peut continuer avec des projectiles invisibles ou des placeholders si géré dans dessiner_projectiles_ennemi
     }
 }
 
@@ -53,56 +87,42 @@ void initialiser_projectiles_ennemi(GameState *gameState) {
     }
 }
 
-// La définition de la fonction spawn_projectile_ennemi accepte maintenant 4 arguments:
-// gameState, l'ennemi tireur (shooter), un décalage vertical (y_offset), et la vitesse du projectile (speed).
-void spawn_projectile_ennemi(GameState *gameState, Ennemi *shooter, int y_offset, int speed) {
+// MODIFIÉ: Accepte sprite_to_use et damage_value
+void spawn_projectile_ennemi(GameState *gameState, Ennemi *shooter, int y_offset, int speed, BITMAP *sprite_to_use, int damage_value) {
     if (!gameState || !shooter || !shooter->active) {
-        return; // Ne pas tirer si le tireur est invalide ou inactif
+        return;
     }
-    if (!gameState->sprite_projectile_ennemi) {
-        printf("ERREUR: Tentative de spawn projectile ennemi mais sprite non chargé.\n"); fflush(stdout);
-        return; // Ne pas tirer si le sprite du projectile n'est pas chargé
+    if (!sprite_to_use) { // Vérifier si le sprite fourni est valide
+        printf("ERREUR: Tentative de spawn projectile ennemi avec sprite NULL.\n"); fflush(stdout);
+        return;
     }
 
-    // Chercher un slot inactif pour le nouveau projectile
     for (int i = 0; i < MAX_PROJECTILES_ENNEMI; i++) {
         if (!gameState->projectiles_ennemi[i].active) {
-            ProjectileEnnemi *p = &gameState->projectiles_ennemi[i]; // Pointeur vers le projectile
+            ProjectileEnnemi *p = &gameState->projectiles_ennemi[i];
 
-            p->active = 1; // Activer le projectile
-            p->speed = speed; // Assigner la vitesse passée en argument
-            p->sprite = gameState->sprite_projectile_ennemi; // Assigner le sprite modèle
+            p->active = 1;
+            p->speed = speed;
+            p->sprite = sprite_to_use; // Utiliser le sprite passé en paramètre
+            p->damage = damage_value;  // Assigner les dégâts
 
-            // Vérifier si le sprite est valide avant d'accéder à w et h
             if (p->sprite) {
-                p->w = p->sprite->w; // Largeur du projectile
-                p->h = p->sprite->h; // Hauteur du projectile
-            } else {
-                // Fallback si le sprite est NULL (ne devrait pas arriver si le chargement est correct)
+                p->w = p->sprite->w;
+                p->h = p->sprite->h;
+            } else { // Fallback si, pour une raison quelconque, le sprite est encore NULL
                 p->w = 5;
                 p->h = 5;
-                printf("WARN: Sprite de projectile ennemi est NULL lors du spawn.\n"); fflush(stdout);
             }
 
-
-            // Calculer les coordonnées de l'ennemi à l'écran
             int shooter_screen_x = shooter->x - gameState->scroll_x;
             int shooter_screen_y = shooter->y - gameState->scroll_y;
 
-            // Positionner le projectile
-            // Le projectile part du "nez" de l'ennemi (bord gauche du sprite de l'ennemi)
             p->x = shooter_screen_x - p->w;
-            // Centré verticalement par rapport au centre de l'ennemi, plus le décalage y_offset
             p->y = shooter_screen_y + (shooter->h / 2) - (p->h / 2) + y_offset;
 
-            // printf("DEBUG: Projectile ennemi (offset %d, speed %d) spawné par ennemi type %d en slot %d à écran (%d, %d)\n",
-            //        y_offset, speed, shooter->type, i, p->x, p->y); fflush(stdout);
-
-            return; // Sortir de la fonction dès qu'un slot est trouvé et le projectile créé
+            return;
         }
     }
-    // Si on arrive ici, c'est que le tableau des projectiles ennemis est plein
-    // printf("Attention: Impossible de spawner projectile ennemi, tableau plein !\n"); fflush(stdout);
 }
 
 void mettre_a_jour_projectiles_ennemi(GameState *gameState) {
@@ -110,12 +130,10 @@ void mettre_a_jour_projectiles_ennemi(GameState *gameState) {
     for (int i = 0; i < MAX_PROJECTILES_ENNEMI; i++) {
         ProjectileEnnemi *p = &gameState->projectiles_ennemi[i];
         if (p->active) {
-            // Déplacer le projectile vers la gauche en utilisant sa vitesse individuelle
             p->x -= p->speed;
 
-            // Vérifier si le projectile sort de l'écran par la gauche
             if (p->x + p->w < 0) {
-                p->active = 0; // Désactiver le projectile
+                p->active = 0;
             }
         }
     }
@@ -128,23 +146,27 @@ void dessiner_projectiles_ennemi(GameState *gameState) {
     for (int i = 0; i < MAX_PROJECTILES_ENNEMI; i++) {
         ProjectileEnnemi *p = &gameState->projectiles_ennemi[i];
         if (p->active) {
-            if (p->sprite) {
-                // Dessiner le sprite du projectile ennemi inversé horizontalement
+            if (p->sprite) { // Utiliser le sprite assigné au projectile
                 draw_sprite_h_flip(dest, p->sprite, p->x, p->y);
             } else {
-                // Fallback: dessiner un rectangle si le sprite est manquant
-                rectfill(dest, p->x, p->y, p->x + 5, p->y + 5, gameState->couleur_blanche);
+                // Fallback si sprite est NULL (ne devrait pas arriver si spawn_projectile_ennemi vérifie)
+                rectfill(dest, p->x, p->y, p->x + (p->w > 0 ? p->w : 5) -1 , p->y + (p->h > 0 ? p->h : 5) -1, gameState->couleur_blanche);
             }
         }
     }
 }
 
-void nettoyer_ressources_projectiles_ennemi(GameState *gameState) {
+// Nom de fonction modifié
+void nettoyer_ressources_projectiles_ennemis(GameState *gameState) {
     if (!gameState) return;
     printf("Nettoyage ressources projectiles ennemis...\n"); fflush(stdout);
-    if (gameState->sprite_projectile_ennemi) {
-        destroy_bitmap(gameState->sprite_projectile_ennemi);
-        gameState->sprite_projectile_ennemi = NULL;
-        printf("Sprite modèle projectile ennemi détruit.\n"); fflush(stdout);
+    if (gameState->sprite_projectile_ennemi1) {
+        destroy_bitmap(gameState->sprite_projectile_ennemi1);
+        gameState->sprite_projectile_ennemi1 = NULL;
     }
+    if (gameState->sprite_projectile_ennemi2) {
+        destroy_bitmap(gameState->sprite_projectile_ennemi2);
+        gameState->sprite_projectile_ennemi2 = NULL;
+    }
+    printf("Sprites modèles projectiles ennemis détruits.\n"); fflush(stdout);
 }

@@ -5,7 +5,7 @@
 
 // --- Constantes Générales ---
 #define TARGET_FPS 66
-#define LEVEL_DURATION_SECONDS 5
+#define LEVEL_DURATION_SECONDS 50
 #define LEVEL_DURATION_FRAMES (LEVEL_DURATION_SECONDS * TARGET_FPS)
 #define MAX_LEVEL 3
 
@@ -19,7 +19,7 @@
 #define PLAYER_HIT_DURATION (TARGET_FPS / 3)
 #define PLAYER_SCALE_FACTOR 0.6f
 #define PLAYER_SPEED 6
-#define PLAYER_INITIAL_HP 3
+#define PLAYER_INITIAL_HP 5
 #define PLAYER_INVINCIBILITY_DURATION (TARGET_FPS * 2)
 
 // --- Constantes Ennemis ---
@@ -38,28 +38,28 @@
 #define ENEMY_TYPE_2 2
 #define ENEMY_TYPE_3 3
 #define ENEMY_TYPE_4 4
-#define ENEMY_TYPE_5 5 // Cet ennemi (bleu) laissera tomber l'item
+#define ENEMY_TYPE_5 5
 #define ENEMY_TYPE_6 6
 
 #define MAX_ACTIVE_ENEMY_TYPE_4 2
 
 // PV Ennemis
-#define ENEMY_HP_TYPE_0 10
-#define ENEMY_HP_TYPE_1 20
-#define ENEMY_HP_TYPE_2 14
-#define ENEMY_HP_TYPE_3 12
-#define ENEMY_HP_TYPE_4 25
-#define ENEMY_HP_TYPE_5 8
-#define ENEMY_HP_TYPE_6 10
+#define ENEMY_HP_TYPE_0 12
+#define ENEMY_HP_TYPE_1 22
+#define ENEMY_HP_TYPE_2 16
+#define ENEMY_HP_TYPE_3 15
+#define ENEMY_HP_TYPE_4 30
+#define ENEMY_HP_TYPE_5 10
+#define ENEMY_HP_TYPE_6 18
 
 // Intervalles de tir (cadence)
-#define ENEMY_FIRE_INTERVAL_TYPE_0 (int)(TARGET_FPS * 2.2)
-#define ENEMY_FIRE_INTERVAL_TYPE_1 (int)(TARGET_FPS * 1.3)
-#define ENEMY_FIRE_INTERVAL_TYPE_2 (int)(TARGET_FPS * 1.5)
-#define ENEMY_FIRE_INTERVAL_TYPE_3 (int)(TARGET_FPS * 1.0)
-#define ENEMY_FIRE_INTERVAL_TYPE_4 (int)(TARGET_FPS * 1.8)
-#define ENEMY_FIRE_INTERVAL_TYPE_5 (TARGET_FPS * 1000)      // Ne tire pas
-#define ENEMY_FIRE_INTERVAL_TYPE_6 (int)(TARGET_FPS * 1.5)
+#define ENEMY_FIRE_INTERVAL_TYPE_0 (int)(TARGET_FPS * 1.7)
+#define ENEMY_FIRE_INTERVAL_TYPE_1 (int)(TARGET_FPS * 0.9)
+#define ENEMY_FIRE_INTERVAL_TYPE_2 (int)(TARGET_FPS * 1.1)
+#define ENEMY_FIRE_INTERVAL_TYPE_3 (int)(TARGET_FPS * 0.7)
+#define ENEMY_FIRE_INTERVAL_TYPE_4 (int)(TARGET_FPS * 1.6)
+#define ENEMY_FIRE_INTERVAL_TYPE_5 (TARGET_FPS * 1000)
+#define ENEMY_FIRE_INTERVAL_TYPE_6 (int)(TARGET_FPS * 1.1)
 
 // Vitesses des ennemis
 #define ENEMY_SPEED_TYPE0 3
@@ -76,19 +76,25 @@
 #define PROJECTILE_JOUEUR_SCALE_FACTOR (PLAYER_SCALE_FACTOR * 0.6f)
 
 // --- Constantes Projectiles Ennemi ---
-#define MAX_PROJECTILES_ENNEMI 60
-#define PROJECTILE_ENNEMI_SCALE_FACTOR (PLAYER_SCALE_FACTOR * 0.5f)
+#define MAX_PROJECTILES_ENNEMI 70
+#define PROJECTILE_ENNEMI_SCALE_FACTOR (PLAYER_SCALE_FACTOR * 0.5f) // Facteur d'échelle général pour les sprites de projectiles ennemis
 #define PROJECTILE_ENNEMI_SPEED_SLOW 3
 #define PROJECTILE_ENNEMI_SPEED_MEDIUM 6
-#define PROJECTILE_ENNEMI_SPEED_FAST 10
+#define PROJECTILE_ENNEMI_SPEED_FAST 9
+#define PROJECTILE_ENNEMI_SPEED_VIOLET PROJECTILE_ENNEMI_SPEED_FAST
+
+#define PROJECTILE_ENNEMI1_DAMAGE 1 // NOUVEAU
+#define PROJECTILE_ENNEMI2_DAMAGE 1 // NOUVEAU (était 0.5, mis à 1 car HP sont int)
+
 #define ENEMY0_WALL_PROJECTILE_COUNT 3
 #define ENEMY0_WALL_PROJECTILE_SPREAD 15
 #define ENEMY2_SPREAD_FACTOR_VS_HEIGHT 0.5f
 
-// --- Constantes Items --- (NOUVEAU)
+// --- Constantes Items ---
 #define MAX_ITEMS 10
-#define ITEM_SIZE 20 // Taille du carré pour l'item (placeholder)
-#define ITEM_SCREEN_CLEAR_SPRITE_FILENAME "item_screen_clear.bmp" // Placeholder, nous utiliserons un rect pour l'instant
+#define ITEM_SIZE 20
+#define ITEM_SCREEN_CLEAR_SPRITE_FILENAME "item_screen_clear.bmp"
+#define ITEM_HEALTH_PACK_SPRITE_FILENAME "item_health.bmp"
 
 // --- Constantes Effets Visuels ---
 #define MAX_EFFECTS 50
@@ -126,9 +132,10 @@ typedef enum {
     PROJECTILE_STATE_INACTIVE
 }ProjectileState;
 
-typedef enum { // (NOUVEAU)
-    ITEM_TYPE_NONE, // Pour les slots inactifs
-    ITEM_TYPE_SCREEN_CLEAR
+typedef enum {
+    ITEM_TYPE_NONE,
+    ITEM_TYPE_SCREEN_CLEAR,
+    ITEM_TYPE_HEALTH_PACK
 }ItemType;
 
 typedef enum {
@@ -158,7 +165,7 @@ typedef struct {
 } Vaisseau;
 
 typedef struct {
-    int x, y; // Coordonnées dans le monde du jeu
+    int x, y;
     int type;
     int health;
     int active;
@@ -190,19 +197,20 @@ typedef struct {
 } Projectile;
 
 typedef struct {
-    int x, y; // Coordonnées à l'écran
+    int x, y;
     int active;
     int speed;
-    BITMAP *sprite;
+    BITMAP *sprite; // Le sprite spécifique utilisé pour ce projectile
     int w, h;
+    int damage; // NOUVEAU: Dégâts infligés par ce projectile
 } ProjectileEnnemi;
 
-typedef struct { // (NOUVEAU)
-    int x_world, y_world; // Coordonnées dans le monde du jeu (pour tomber avec le scrolling)
+typedef struct {
+    int x_world, y_world;
     int w, h;
     int active;
     ItemType type;
-    BITMAP *sprite; // Pour l'instant, on ne chargera pas de sprite spécifique
+    BITMAP *sprite;
 } Item;
 
 typedef struct {
@@ -240,7 +248,7 @@ typedef struct GameState {
     Projectile projectiles_joueur[MAX_PROJECTILES_JOUEUR];
     ProjectileEnnemi projectiles_ennemi[MAX_PROJECTILES_ENNEMI];
     Effect effects[MAX_EFFECTS];
-    Item items[MAX_ITEMS]; // (NOUVEAU) Tableau pour les items
+    Item items[MAX_ITEMS];
 
     BITMAP *sprites_player_idle_move[PLAYER_NBFRAMES_IDLE_MOVE];
     BITMAP *sprites_player_hit[PLAYER_NBFRAMES_HIT];
@@ -256,10 +264,13 @@ typedef struct GameState {
     BITMAP *sprites_enemy2_hit[ENEMY_NBFRAMES_HIT];
     BITMAP *sprites_enemy2_death[ENEMY_NBFRAMES_DEATH];
 
-    BITMAP *sprite_projectile_joueur;
+    BITMAP *sprite_projectile_joueur; // Pour "tir_joueur.bmp"
     BITMAP *sprites_impact[IMPACT_NBFRAMES];
-    BITMAP *sprite_projectile_ennemi;
-    BITMAP *sprite_item_screen_clear; // (NOUVEAU) Sprite pour l'item (si on charge un fichier)
+    BITMAP *sprite_projectile_ennemi1; // NOUVEAU: Pour "tire_ennemie1.bmp"
+    BITMAP *sprite_projectile_ennemi2; // NOUVEAU: Pour "tire_ennemie2.bmp"
+
+    BITMAP *sprite_item_screen_clear;
+    BITMAP *sprite_item_health_pack;
 
     BITMAP *barre_progression_vide;
     BITMAP *barre_progression_pleine;
