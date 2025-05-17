@@ -336,7 +336,7 @@ void dessiner_ennemis(GameState *gameState) {
         Ennemi *e = &gameState->ennemis[i];
         if (e->active) {
             int screen_x = e->x - gameState->scroll_x;
-            int screen_y = e->y - gameState->scroll_y;
+            int screen_y = e->y - gameState->scroll_y_dummy;
 
             if (screen_x + e->w > 0 && screen_x < gameState->screen_width_allegro &&
                 screen_y + e->h > 0 && screen_y < gameState->screen_height_allegro) {

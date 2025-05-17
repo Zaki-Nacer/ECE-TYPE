@@ -19,20 +19,9 @@ void charger_sprites_effects(GameState *gameState) {
     printf("Chargement/Traitement sprites effets (impact)...\n"); fflush(stdout);
 
     for (i = 0; i < IMPACT_NBFRAMES; i++) {
-        sprintf(nom_fichier, "impact_(%d).bmp", i+1); // Adapter si nom différent
+        sprintf(nom_fichier, "impact_(%d).bmp", i+1); // chargement du fichier de l'impact des collision projectiles
         original_bmp = charger_bitmap_safe(nom_fichier);
 
-        // --- Optionnel: Redimensionnement ---
-        // float scale = IMPACT_SCALE_FACTOR; // Définir si besoin dans defs.h
-        // int new_w = (int)roundf(original_bmp->w * scale);
-        // int new_h = (int)roundf(original_bmp->h * scale);
-        // if (new_w <= 0) new_w = 1; if (new_h <= 0) new_h = 1;
-        // processed_bmp = create_bitmap(new_w, new_h);
-        // if (!processed_bmp) { /* ... gestion erreur ... */ exit(EXIT_FAILURE); }
-        // stretch_blit(original_bmp, processed_bmp, 0, 0, original_bmp->w, original_bmp->h, 0, 0, new_w, new_h);
-        // destroy_bitmap(original_bmp);
-        // printf("Impact frame %d redimensionnée à %dx%d.\n", i, new_w, new_h); fflush(stdout);
-        // --- Si pas de redimensionnement ---
          processed_bmp = original_bmp;
          printf("Impact frame %d chargée (%dx%d).\n", i, processed_bmp->w, processed_bmp->h); fflush(stdout);
         // ---------------------------------

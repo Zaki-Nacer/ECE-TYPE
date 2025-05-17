@@ -12,7 +12,7 @@ void charger_sprites_items(GameState *gameState) {
     gameState->sprite_item_screen_clear = NULL;
     gameState->sprite_item_health_pack = NULL; // NOUVEAU
 
-    // Si vous avez des fichiers sprites, décommentez et adaptez :
+    // il y'aura des sprites mais pas pour l'instant il faudra decommenter ça : (même logique que le reste)
     /*
     gameState->sprite_item_screen_clear = charger_bitmap_safe(ITEM_SCREEN_CLEAR_SPRITE_FILENAME);
     if (gameState->sprite_item_screen_clear) {
@@ -92,7 +92,7 @@ void dessiner_items(GameState *gameState) {
         Item *item = &gameState->items[i];
         if (item->active) {
             int screen_x = item->x_world - gameState->scroll_x;
-            int screen_y = item->y_world - gameState->scroll_y;
+            int screen_y = item->y_world - gameState->scroll_y_dummy;
 
             if (screen_x + item->w > 0 && screen_x < gameState->screen_width_allegro &&
                 screen_y + item->h > 0 && screen_y < gameState->screen_height_allegro) {

@@ -36,7 +36,7 @@ static int menu_bg_scroll_x_pos = 0;
 static int key_debounce_timer = 0;
 #define KEY_DEBOUNCE_FRAMES 5
 
-// --- Helper Function Prototypes (static) ---
+// proto des fonctions
 static void draw_scrolling_background(BITMAP *buffer, GameState *gameState);
 static void draw_main_menu_ui(BITMAP *buffer, GameState *gameState);
 static void handle_main_menu_input(GameState *gameState);

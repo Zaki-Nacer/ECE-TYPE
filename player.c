@@ -73,9 +73,7 @@ void init_player_state(GameState *gameState) {
      p->x = 50;
      p->y = gameState->screen_height_allegro / 2 - p->h / 2;
 
-     // La logique du bouclier est supprimée
-     // p->shield_active = 0;
-     // p->shield_timer = 0;
+
 
      set_player_state(gameState, STATE_IDLE);
      printf("État du joueur initialisé. HP: %d, Pos: (%d,%d)\n", p->health, p->x, p->y); fflush(stdout);

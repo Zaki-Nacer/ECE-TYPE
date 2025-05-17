@@ -25,5 +25,7 @@ add_executable(untitled4 main.c
         menu.h
         item.c
         item.h
+        boss.c
+        boss.h
 )
 target_link_libraries(untitled4 -lmingw32 -lalleg44)

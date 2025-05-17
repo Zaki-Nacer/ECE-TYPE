@@ -115,7 +115,7 @@ void spawn_projectile_ennemi(GameState *gameState, Ennemi *shooter, int y_offset
             }
 
             int shooter_screen_x = shooter->x - gameState->scroll_x;
-            int shooter_screen_y = shooter->y - gameState->scroll_y;
+            int shooter_screen_y = shooter->y - gameState->scroll_y_dummy;
 
             p->x = shooter_screen_x - p->w;
             p->y = shooter_screen_y + (shooter->h / 2) - (p->h / 2) + y_offset;
